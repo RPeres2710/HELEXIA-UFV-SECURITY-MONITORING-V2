@@ -1,0 +1,2590 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HELEXIA UFV SECURITY MONITORING - MOVISAFE AMLAT</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+<style>
+* {
+margin: 0;
+padding: 0;
+box-sizing: border-box;
+}
+body {
+font-family: 'Segoe UI', Arial, sans-serif;
+display: flex;
+height: 100vh;
+background: linear-gradient(135deg, #143d0f, #013046);
+color: white;
+overflow: hidden;
+}
+.menu-button {
+position: fixed;
+top: 10px;
+left: 10px;
+z-index: 1000;
+background: rgb(0, 0, 0);
+color: rgb(252, 252, 252);
+border: none;
+padding: 8px 12px;
+font-size: 20px;
+border-radius: 6px;
+cursor: pointer;
+box-shadow: 0 0 10px rgba(32, 17, 17, 0.363);
+}
+.menu-button:hover, .menu-button:focus {
+background: #0a0909;
+outline: none;
+box-shadow: 0 0 10px rgba(2, 1, 1, 0.158);
+}
+.sidebar {
+position: fixed;
+top: 0;
+left: 0;
+width: 280px;
+height: 100%;
+background: rgba(16, 16, 17, 0.815);
+padding: 1rem;
+padding-top: 50px;
+transition: transform 0.3s ease;
+overflow-y: auto;
+z-index: 999;
+backdrop-filter: blur(10px);
+}
+.sidebar.hidden {
+transform: translateX(-280px);
+}
+.state-section {
+margin-bottom: 20px;
+}
+.state-header {
+background: linear-gradient(45deg, rgba(60, 60, 80, 0.8), rgba(80, 80, 100, 0.8));
+color: white;
+padding: 12px 15px;
+border-radius: 8px;
+cursor: pointer;
+font-weight: bold;
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 5px;
+border: 1px solid rgba(3, 3, 3, 0.856);
+transition: all 0.3s ease;
+}
+.state-header:hover {
+background: linear-gradient(45deg, rgba(110, 97, 97, 0.9), rgba(185, 185, 211, 0.9));
+transform: translateX(5px);
+}
+.state-cities {
+max-height: 0;
+overflow: hidden;
+transition: max-height 0.3s ease;
+background: rgba(40, 40, 50, 0.7);
+border-radius: 0 0 8px 8px;
+border: 1px solid rgba(255, 255, 255, 0.05);
+border-top: none;
+}
+.state-cities.expanded {
+max-height: 500px;
+}
+.state-cities a {
+color: #e0e0e0;
+text-decoration: none;
+display: block;
+padding: 10px 20px;
+border-left: 3px solid transparent;
+transition: all 0.3s ease;
+}
+.state-cities a:hover {
+background: rgba(255, 255, 255, 0.1);
+border-left-color: #4fc3f7;
+color: white;
+}
+.region-legend {
+background: rgba(40, 40, 50, 0.8);
+padding: 15px;
+border-radius: 8px;
+margin-bottom: 20px;
+border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.legend-item {
+display: flex;
+align-items: center;
+margin-bottom: 8px;
+}
+.legend-color {
+width: 20px;
+height: 20px;
+border-radius: 50%;
+margin-right: 10px;
+border: 2px solid white;
+}
+#main {
+flex-grow: 1;
+padding: 1rem;
+transition: margin-left 0.3s ease;
+}
+header {
+position: relative;
+text-align: center;
+margin-bottom: 1rem;
+}
+header::before {
+content: '';
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: linear-gradient(to right, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.2));
+z-index: -1;
+border-radius: 10px;
+box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+header h1 {
+font-size: 2.2rem;
+text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);
+font-weight: bold;
+margin: 0;
+padding: 10px 20px;
+}
+.search-bar {
+position: absolute;
+top: 10px;
+right: 15px;
+padding: 8px 12px;
+border: none;
+border-radius: 8px;
+font-size: 14px;
+width: 200px;
+box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+transition: width 0.3s ease;
+z-index: 10;
+}
+.map-container {
+display: flex;
+width: 100%;
+height: calc(100vh - 150px);
+gap: 10px;
+}
+#map {
+width: 60%;
+height: 100%;
+border-radius: 12px;
+border: 4px solid rgba(255, 255, 255, 0.4);
+box-shadow: 0 0 10px rgba(224, 153, 153, 0.4);
+}
+.control-panel {
+width: 40%;
+background: rgba(0, 0, 0, 0.8);
+border-radius: 12px;
+padding: 20px;
+overflow-y: auto;
+}
+.control-buttons {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 15px;
+margin-bottom: 20px;
+}
+.control-btn {
+background: linear-gradient(45deg, #00897b, #26a69a);
+color: white;
+border: none;
+padding: 15px;
+border-radius: 8px;
+cursor: pointer;
+font-weight: bold;
+transition: all 0.3s ease;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 8px;
+}
+.control-btn:hover {
+background: linear-gradient(45deg, #26a69a, #4db6ac);
+transform: translateY(-2px);
+}
+.panel-content {
+background: rgba(255, 255, 255, 0.1);
+border-radius: 8px;
+padding: 20px;
+margin-bottom: 15px;
+display: none;
+}
+.panel-content.active {
+display: block;
+}
+.form-group {
+margin-bottom: 15px;
+}
+.form-group label {
+display: block;
+margin-bottom: 5px;
+font-weight: bold;
+}
+.form-group input,
+.form-group select,
+.form-group textarea {
+width: 100%;
+padding: 10px;
+border: none;
+border-radius: 5px;
+background: rgba(255, 255, 255, 0.9);
+color: #333;
+}
+.form-group textarea {
+height: 80px;
+resize: vertical;
+}
+.btn-primary {
+background: #00897b;
+color: white;
+border: none;
+padding: 10px 20px;
+border-radius: 5px;
+cursor: pointer;
+font-weight: bold;
+width: 100%;
+margin-top: 10px;
+}
+.btn-primary:hover {
+background: #26a69a;
+}
+.btn-secondary {
+background: #666;
+color: white;
+border: none;
+padding: 8px 15px;
+border-radius: 5px;
+cursor: pointer;
+margin: 5px;
+}
+.btn-secondary:hover {
+background: #888;
+}
+.occurrence-list {
+max-height: 300px;
+overflow-y: auto;
+}
+.occurrence-item {
+background: rgba(255, 255, 255, 0.1);
+padding: 10px;
+margin-bottom: 10px;
+border-radius: 5px;
+border-left: 4px solid #00897b;
+}
+.occurrence-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 5px;
+}
+.occurrence-type {
+background: #ff5722;
+color: white;
+padding: 2px 8px;
+border-radius: 3px;
+font-size: 12px;
+}
+.occurrence-date {
+font-size: 12px;
+color: #ccc;
+}
+/* Modal Styles */
+.modal {
+display: none;
+position: fixed;
+z-index: 2000;
+left: 0;
+top: 0;
+width: 100%;
+height: 100%;
+background-color: rgba(0, 0, 0, 0.8);
+}
+.modal-content {
+background: linear-gradient(135deg, #1e3c72, #2a5298);
+margin: 2% auto;
+padding: 0;
+border-radius: 15px;
+width: 90%;
+max-width: 600px;
+max-height: 90vh;
+box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+overflow: hidden;
+}
+.modal-header {
+background: linear-gradient(45deg, #00897b, #26a69a);
+color: white;
+padding: 20px;
+text-align: center;
+position: relative;
+}
+.modal-header h2 {
+margin: 0;
+font-size: 1.5rem;
+}
+.close {
+position: absolute;
+right: 15px;
+top: 15px;
+color: white;
+font-size: 28px;
+font-weight: bold;
+cursor: pointer;
+}
+.close:hover {
+opacity: 0.7;
+}
+.modal-body {
+padding: 0;
+color: white;
+max-height: calc(90vh - 80px);
+overflow-y: auto;
+}
+/* Tabs */
+.tab-container {
+display: flex;
+background: rgba(0, 0, 0, 0.3);
+}
+.tab-button {
+flex: 1;
+padding: 15px;
+background: transparent;
+border: none;
+color: #ccc;
+cursor: pointer;
+transition: all 0.3s ease;
+border-bottom: 3px solid transparent;
+}
+.tab-button.active {
+color: white;
+background: rgba(255, 255, 255, 0.1);
+border-bottom-color: #4fc3f7;
+}
+.tab-button:hover {
+background: rgba(255, 255, 255, 0.05);
+color: white;
+}
+.tab-content {
+display: none;
+padding: 25px;
+}
+.tab-content.active {
+display: block;
+}
+.contact-section {
+background: rgba(255, 255, 255, 0.1);
+padding: 15px;
+border-radius: 8px;
+margin-bottom: 15px;
+}
+.contact-section h3 {
+color: #4fc3f7;
+margin-bottom: 10px;
+display: flex;
+align-items: center;
+gap: 8px;
+}
+.contact-item {
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 8px 0;
+border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+.contact-item:last-child {
+border-bottom: none;
+}
+.whatsapp-btn {
+background: #25d366;
+color: white;
+padding: 8px 15px;
+border-radius: 20px;
+text-decoration: none;
+font-size: 12px;
+display: flex;
+align-items: center;
+gap: 5px;
+transition: all 0.3s ease;
+}
+.whatsapp-btn:hover {
+background: #128c7e;
+transform: scale(1.05);
+}
+/* Risk Bar */
+.risk-section {
+background: rgba(255, 255, 255, 0.1);
+padding: 15px;
+border-radius: 8px;
+margin-bottom: 15px;
+}
+.risk-bar-container {
+margin-top: 10px;
+}
+.risk-bar {
+width: 100%;
+height: 20px;
+background: rgba(255, 255, 255, 0.2);
+border-radius: 10px;
+overflow: hidden;
+position: relative;
+}
+.risk-bar-fill {
+height: 100%;
+border-radius: 10px;
+transition: width 1s ease-in-out;
+position: relative;
+}
+.risk-percentage {
+position: absolute;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+color: white;
+font-weight: bold;
+font-size: 12px;
+text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+.risk-low { background: linear-gradient(90deg, #4caf50, #8bc34a); }
+.risk-medium { background: linear-gradient(90deg, #ff9800, #ffc107); }
+.risk-high { background: linear-gradient(90deg, #f44336, #e91e63); }
+/* Schedule Styles */
+.schedule-section {
+background: rgba(255, 255, 255, 0.1);
+padding: 15px;
+border-radius: 8px;
+margin-bottom: 15px;
+}
+.current-guard {
+background: rgba(76, 175, 80, 0.3);
+padding: 10px;
+border-radius: 5px;
+margin-bottom: 10px;
+border-left: 4px solid #4caf50;
+}
+.next-guard {
+background: rgba(255, 152, 0, 0.3);
+padding: 10px;
+border-radius: 5px;
+margin-bottom: 10px;
+border-left: 4px solid #ff9800;
+}
+.schedule-toggle {
+background: transparent;
+border: 1px solid #4fc3f7;
+color: #4fc3f7;
+padding: 8px 15px;
+border-radius: 5px;
+cursor: pointer;
+transition: all 0.3s ease;
+}
+.schedule-toggle:hover {
+background: #4fc3f7;
+color: white;
+}
+.schedule-details {
+display: none;
+margin-top: 15px;
+background: rgba(0, 0, 0, 0.3);
+padding: 15px;
+border-radius: 5px;
+}
+.schedule-day {
+margin-bottom: 10px;
+}
+.schedule-day h4 {
+color: #4fc3f7;
+margin-bottom: 5px;
+}
+/* Cluster Styles */
+.marker-cluster-small {
+background-color: rgba(181, 226, 140, 0.6);
+}
+.marker-cluster-small div {
+background-color: rgba(110, 204, 57, 0.6);
+}
+.marker-cluster-medium {
+background-color: rgba(241, 211, 87, 0.6);
+}
+.marker-cluster-medium div {
+background-color: rgba(240, 194, 12, 0.6);
+}
+.marker-cluster-large {
+background-color: rgba(253, 156, 115, 0.6);
+}
+.marker-cluster-large div {
+background-color: rgba(241, 128, 23, 0.6);
+}
+/* Responsive */
+@media (max-width: 768px) {
+.map-container {
+flex-direction: column;
+}
+#map {
+width: 100%;
+height: 50%;
+}
+.control-panel {
+width: 100%;
+height: 50%;
+}
+.control-buttons {
+grid-template-columns: 1fr;
+}
+.modal-content {
+width: 95%;
+margin: 5% auto;
+}
+}
+/* ... Seu CSS existente ... */
+.whatsapp-link {
+background: #25d366; /* Cor verde do WhatsApp */
+color: white;
+padding: 5px 10px;
+border-radius: 20px;
+text-decoration: none;
+font-size: 14px;
+display: inline-flex; /* Para alinhar o ícone e o texto */
+align-items: center;
+gap: 5px;
+transition: all 0.3s ease;
+margin-left: 10px; /* Para separar um pouco do texto "Operações:" */
+}
+.whatsapp-link:hover {
+background: #128c7e; /* Verde mais escuro no hover */
+transform: scale(1.03);
+}
+.whatsapp-contact-item {
+display: flex; /* Para alinhar o "strong" e o link na mesma linha */
+align-items: center;
+margin-bottom: 8px; /* Espaçamento entre os itens */
+}
+.whatsapp-contact-item strong {
+min-width: 120px; /* Ajuda a alinhar o conteúdo, ajuste se necessário */
+}
+</style>
+</head>
+<body>
+<button id="toggleSidebar" class="menu-button" aria-label="Abrir ou fechar menu">☰</button>
+<div id="sidebar" class="sidebar hidden">
+<div class="region-legend">
+<h3>Legenda por Região</h3>
+<div class="legend-item">
+<div class="legend-color" style="background-color: #e53e3e;"></div>
+<span>Norte</span>
+</div>
+<div class="legend-item">
+<div class="legend-color" style="background-color: #3182ce;"></div>
+<span>Nordeste</span>
+</div>
+<div class="legend-item">
+<div class="legend-color" style="background-color: #38a169;"></div>
+<span>Centro-Oeste</span>
+</div>
+<div class="legend-item">
+<div class="legend-color" style="background-color: #d69e2e;"></div>
+<span>Sudeste</span>
+</div>
+<div class="legend-item">
+<div class="legend-color" style="background-color: #805ad5;"></div>
+<span>Sul</span>
+</div>
+</div>
+<div id="statesList"></div>
+</div>
+<div id="main">
+<header>
+<h1>HELEXIA UFV SECURITY MONITORING - MOVISAFE AMLAT</h1>
+<input type="text" class="search-bar" placeholder="Pesquisar localização..." aria-label="Pesquisar localização">
+</header>
+<div class="map-container">
+<div id="map"></div>
+<div class="control-panel">
+<div class="control-buttons">
+<button class="control-btn" onclick="showPanel('register')">
+<i class="fas fa-plus-circle"></i>
+Registrar Ocorrência
+</button>
+<button class="control-btn" onclick="showPanel('consult')">
+<i class="fas fa-search"></i>
+Consultar Ocorrências
+</button>
+<!-- Novo Botão para Planilha de Controle -->
+<a href="https://docs.google.com/spreadsheets/d/1IVd_1hF6-z3Wr-TywlM2tVSmg4ewhJyl-D9RAqs2cn4/edit?usp=sharing"
+class="control-btn"
+target="_blank"
+rel="noopener noreferrer">
+<i class="fas fa-file-excel"></i>
+Monit. UFV Câmeras
+</a>
+</a>
+<!-- NOVO BOTÃO PARA FORMULÁRIO DE PASSAGEM DE PLANTÃO -->
+<a href="https://docs.google.com/forms/d/e/1FAIpQLSczqFqzbKwPkYT8AQcqlcrIiAmoo0dIkpfIlZKzobkMHZuONA/viewform?usp=dialog"
+class="control-btn"
+target="_blank"
+rel="noopener noreferrer">
+<i class="fas fa-clipboard-list"></i> <!-- Ícone de lista/formulário -->
+Passagem de Plantão
+</a>
+<!-- FIM DO NOVO BOTÃO -->
+<!-- Novo Botão para Telefones Úteis -->
+<button class="control-btn" onclick="showPanel('useful-phones')">
+<i class="fas fa-phone-square-alt"></i>
+Telefones Úteis
+</button>
+</div>
+<!-- Painel de Registro -->
+<div id="register-panel" class="panel-content">
+<h3><i class="fas fa-exclamation-triangle"></i> Registro de Ocorrência</h3>
+<form id="occurrenceForm">
+<div class="form-group">
+<label for="location">Localização:</label>
+<select id="location" required>
+<option value="">Selecione a localização</option>
+</select>
+</div>
+<div class="form-group">
+<label for="type">Modalidade:</label>
+<select id="type" required>
+<option value="">Selecione o tipo</option>
+<option value="Roubo">Roubo</option>
+<option value="Furto">Furto</option>
+<option value="Vandalismo">Vandalismo</option>
+<option value="Invasão">Invasão</option>
+<option value="Incêndio">Incêndio</option>
+<option value="Acidente">Acidente</option>
+<option value="Outros">Outros</option>
+</select>
+</div>
+<div class="form-group">
+<label for="date">Data:</label>
+<input type="date" id="date" required>
+</div>
+<div class="form-group">
+<label for="time">Horário:</label>
+<input type="time" id="time" required>
+</div>
+<div class="form-group">
+<label for="names">Nomes Envolvidos:</label>
+<input type="text" id="names" placeholder="Nome dos envolvidos">
+</div>
+<div class="form-group">
+<label for="description">Descrição:</label>
+<textarea id="description" placeholder="Descreva detalhadamente a ocorrência" required></textarea>
+</div>
+<div class="form-group">
+<label for="reporter">Responsável pelo Registro:</label>
+<input type="text" id="reporter" placeholder="Nome do responsável" required>
+</div>
+<button type="submit" class="btn-primary">
+<i class="fas fa-save"></i> Registrar Ocorrência
+</button>
+</form>
+</div>
+<!-- Painel de Consulta -->
+<div id="consult-panel" class="panel-content">
+<h3><i class="fas fa-list"></i> Consultar Ocorrências</h3>
+<div class="control-buttons">
+<button class="btn-secondary" onclick="viewOccurrences()">
+<i class="fas fa-eye"></i> Ver Todas
+</button>
+<button class="btn-secondary" onclick="exportPDF()">
+<i class="fas fa-file-pdf"></i> Exportar PDF
+</button>
+</div>
+<div id="occurrencesList" class="occurrence-list"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Painel de Telefones Úteis -->
+<!-- Painel de Telefones Úteis -->
+<div id="useful-phones-panel" class="panel-content">
+<div class="panel-header-with-close">
+<h3><i class="fas fa-phone-volume"></i> Telefones Úteis</h3>
+<span class="close-panel-button" onclick="hideAllControlPanels()">&times;</span>
+</div>
+<p style="margin-bottom: 15px; color: #ccc;">Aqui você pode encontrar contatos importantes para diversas situações.</p>
+<div class="form-group">
+<label>Emergência Geral (Chamada Direta):</label>
+<p><strong>190</strong> (Polícia Militar)</p>
+<p><strong>193</strong> (Corpo de Bombeiros)</p>
+<p><strong>192</strong> (SAMU)</p>
+</div>
+<div class="form-group" style="margin-top: 20px;">
+<label>Contato Interno - MOVISAFE:</label>
+<p class="whatsapp-contact-item">
+<strong>CRI 24hrs:</strong>
+<a href="https://wa.me/5521996601002" class="whatsapp-link">
+<i class="fab fa-whatsapp"></i> +55 (21) 99660-1002
+</a>
+</p>
+<p class="whatsapp-contact-item">
+<strong> Romario Peres - Ger.Operações:</strong>
+<a href="https://wa.me/5521992424412" class="whatsapp-link">
+<i class="fab fa-whatsapp"></i> +55 (21) 99242-4412
+</a>
+</p>
+<p class="whatsapp-contact-item">
+<strong>Gaspar - Suporte Técnico Remoto:</strong>
+<a href="https://wa.me/5521972628587" class="whatsapp-link">
+<i class="fab fa-whatsapp"></i> +55 (21) 97262-8587
+</a>
+</p>
+</div>
+<div class="form-group" style="margin-top: 20px;">
+<label>Outros Contatos Úteis:</label>
+<p class="whatsapp-contact-item">
+<strong>Gilberson Lima - Seg.Pat.(GTY):</strong>
+<a href="https://wa.me/5512974013088" class="whatsapp-link">
+<i class="fab fa-whatsapp"></i> +55 (12) 97401-3088
+</a>
+</p>
+<!-- Adicione mais contatos aqui seguindo o mesmo padrão -->
+</div>
+</div>
+<!-- Modal para informações da UFV -->
+<div id="ufvModal" class="modal">
+<div class="modal-content">
+<div class="modal-header">
+<h2 id="modalTitle">Informações da UFV</h2>
+<span class="close">&times;</span>
+</div>
+<div class="modal-body">
+<div class="tab-container">
+<button class="tab-button active" onclick="showTab('contacts')">
+<i class="fas fa-phone"></i> Contatos
+</button>
+<button class="tab-button" onclick="showTab('security')">
+<i class="fas fa-shield-alt"></i> Segurança GTY
+</button>
+<button class="tab-button" onclick="showTab('info')">
+<i class="fas fa-info-circle"></i> Informações
+</button>
+</div>
+<div id="contacts-tab" class="tab-content active">
+<!-- Conteúdo será inserido dinamicamente -->
+</div>
+<div id="security-tab" class="tab-content">
+<!-- Conteúdo será inserido dinamicamente -->
+</div>
+<div id="info-tab" class="tab-content">
+<!-- Conteúdo será inserido dinamicamente -->
+</div>
+</div>
+</div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+
+// Dados das localizações organizados por região
+const locations = {
+    "Norte": {
+        "AM": [{
+            code: "HAC09",
+            name: "Açaí 09",
+            city: "Presidente Figueiredo",
+            lat: -1.936674,
+            lng: -60.046947,
+            distributor: "AME",
+            endereço: "3X73+MV9 Rivas - Pres. Figueiredo",
+            hasGTY: false,
+            security: {
+                direct: "Jonathan +5592991164909",
+                police: "Polícia Militar: Av. General Rodrigo Octavio, 3000 - Coroado I, Manaus - AM, 69080-900, tel (92) 3654-1234 7ª CIPM SIM 92 988421606",
+                fire: "Bombeiros: Av. Mário Ypiranga, 1695 - Adrianópolis, Manaus - AM, 69057-002, tel (92) 3198-3300",
+                city_hall: "Prefeitura de Presidente Figueiredo: R. Urubuí, 113 - Centro, Presidente Figueiredo - AM, 69735-000, tel (92) 3324-1184"
+            }
+        }, {
+            code: "HAC04",
+            name: "Açaí 04",
+            city: "Manacapuru",
+            lat: -3.2995,
+            lng: -60.6207,
+            distributor: "Amazonas Energia",
+            endereço: "QC72+68G N. São do Nazaré, Manacapuru",
+            hasGTY: false,
+            security: {
+                direct: "Jonathan +5592991164909",
+                police: "9º Batalhão de Polícia Militar: R. Boulevard Pedro Rates, 1655 - Centro, Manacapuru - AM, 69400-000, tel: (92) 3361-1992",
+                fire: "2ª Companhia Independente de Bombeiros Militar: Av. Ribeiro Junior, 2088 - São José, Manacapuru - AM, 69400-589, tel: 193",
+                city_hall: "Prefeitura de Manacapuru: Praça 16 de Julho, 128 - Centro, Manacapuru - AM, 69400-000, tel: (92) 3361-1375"
+            }
+        }, {
+            code: "HAC06",
+            name: "Açaí 06",
+            city: "Iranduba",
+            lat: -3.2805,
+            lng: -60.0263,
+            distributor: "Amazonas Energia",
+            endereço: "RR8C+4Q8 Iranduba",
+            hasGTY: false,
+            security: {
+                direct: "Jonathan +5592991164909",
+                police: "8ª Companhia Independente de Polícia Militar: Rua Rio Madeira, s/n - Centro, Iranduba - AM, 69406-215, tel: (92) 3367-1190",
+                fire: "Corpo de Bombeiros (Manaus - Atende a Região): Av. Codajás, 1503 - Petrópolis, Manaus - AM, 69063-410, tel: 193",
+                city_hall: "Prefeitura de Iranduba: Av. Rio Madeira, 137 - Centro, Iranduba - AM, 69406-125, tel: (92) 3367-1011"
+            }
+        }, {
+            code: "HAC71",
+            name: "Açai 07-I",
+            city: "Iranduba",
+            lat: -3.2805,
+            lng: -60.0263,
+            distributor: "Amazonas Energia",
+            endereço: "QRM8+H63 Iranduba",
+            hasGTY: false,
+            security: {
+                direct: "Jonathan +5592991164909",
+                police: "8ª Companhia Independente de Polícia Militar: Rua Rio Madeira, s/n - Centro, Iranduba - AM, 69406-215, tel: (92) 3367-1190",
+                fire: "Corpo de Bombeiros (Manaus - Atende a Região): Av. Codajás, 1503 - Petrópolis, Manaus - AM, 69063-410, tel: 193",
+                city_hall: "Prefeitura de Iranduba: Av. Rio Madeira, 137 - Centro, Iranduba - AM, 69406-125, tel: (92) 3367-1011"
+            }
+        }, {
+            code: "HAC72",
+            name: "Açai 07-II",
+            city: "Iranduba",
+            lat: -3.2805,
+            lng: -60.0263,
+            distributor: "Amazonas Energia",
+            endereço: "QRM8+H63 Iranduba",
+            hasGTY: false,
+            security: {
+                direct: "Jonathan +5592991164909",
+                police: "8ª Companhia Independente de Polícia Militar: Rua Rio Madeira, s/n - Centro, Iranduba - AM, 69406-215, tel: (92) 3367-1190",
+                fire: "Corpo de Bombeiros (Manaus - Atende a Região): Av. Codajás, 1503 - Petrópolis, Manaus - AM, 69063-410, tel: 193",
+                city_hall: "Prefeitura de Iranduba: Av. Rio Madeira, 137 - Centro, Iranduba - AM, 69406-125, tel: (92) 3367-1011"
+            }
+        }],
+        "RO": [{
+            code: "HRM01",
+            name: "Rolim de Moura 01",
+            city: "Rolim de Moura",
+            lat: -11.692798,
+            lng: -61.778063,
+            distributor: "ERO",
+            endereço: "8664+HM3 Rolim de Moura",
+            hasGTY: false,
+            security: {
+                direct: "Jonathan +5592991164909",
+                police: "Polícia Militar: R. Corumbiara, 4707 - Centro, Rolim de Moura - RO, 78987-000, tel (69) 3442-1319",
+                fire: "Bombeiros: Av. Goiânia, 5440 - Centro, Rolim de Moura - RO, 76940-000, tel (69) 3442-3193",
+                city_hall: "Prefeitura: Av. 25 de Agosto, 5101 - Centro, Rolim de Moura - RO, 76940-000, tel (69) 3442-2343"
+            }
+        }, {
+            code: "HRM02",
+            name: "Rolim de Moura II",
+            city: "Rolim de Moura",
+            lat: -11.747,
+            lng: -61.7791,
+            distributor: "Energisa RO",
+            endereço: "8664+XHR Rolim de Moura",
+            hasGTY: false,
+            security: {
+                direct: "Jonathan +5592991164909",
+                police: "Polícia Militar: R. Corumbiara, 4707 - Centro, Rolim de Moura - RO, 78987-000, tel (69) 3442-1319",
+                fire: "Bombeiros: Av. Goiânia, 5440 - Centro, Rolim de Moura - RO, 76940-000, tel (69) 3442-3193",
+                city_hall: "Prefeitura: Av. 25 de Agosto, 5101 - Centro, Rolim de Moura - RO, 76940-000, tel (69) 3442-2343"
+            }
+        }],
+        "TO": [{
+            code: "HAR05",
+            name: "Arara 05",
+            city: "Nova Rosalândia",
+            lat: -10.957,
+            lng: -49.815,
+            distributor: "Energisa TO",
+            endereço: "56VJ+QHC Barrolândia",
+            hasGTY: false,
+            security: {
+                direct: "Polícia Militar: 190",
+                police: "Polícia Militar: R. 3, 2-102, Nova Rosalândia - TO, 77485-000, tel: 190",
+                fire: "Bombeiros (Paraíso do Tocantins): Av. Transbrasiliana, 80 - Centro, Paraíso do Tocantins - TO, 77600-000, tel: 193",
+                city_hall: "Prefeitura de Nova Rosalândia: Av. João de Deus, 434 - Centro, Nova Rosalândia - TO, 77485-000, tel: (63) 3385-1133"
+            }
+        }]
+    },
+    "Nordeste": {
+        "CE": [{
+            code: "HCT01",
+            name: "Caatinga 01",
+            city: "Beberibe",
+            lat: -4.195692,
+            lng: -38.171492,
+            distributor: "ENEL CE",
+            endereço: "RR4H+4V9 Beberibe",
+            hasGTY: false,
+            security: {
+                direct: "Breno (Técnico) +5521997118128",
+                police: "Polícia Militar: R. Joaquim Facó, 370 - Beberibe, CE, 62840-000, tel (85) 3338-1190 Batalhão de Rondas de Ações Intensivas e Ostensivas 85 9976-90224",
+                fire: "Bombeiros (Fortaleza): Av. Dom Luís, 1200 - Meireles, Fortaleza - CE, 60160-230, tel: 193",
+                city_hall: "Prefeitura de Beberibe: R. Gen. Edgar Facó, 1 - Centro, Beberibe, CE, 62840-000, tel (85) 3338-1293"
+            }
+        }, {
+            code: "HCT02",
+            name: "Caatinga 02",
+            city: "Cascavel",
+            lat: -4.120416,
+            lng: -38.286931,
+            distributor: "ENEL CE",
+            endereço: "VP78+64C Cascavel",
+            hasGTY: false,
+            security: {
+                direct: "Breno (Técnico) +5521997118128",
+                police: "Polícia Militar: R. Prof. Hélio Gusmão, 4390 - Tamantau, Cascavel - CE, 62850-000, tel (85) 3334-1172 Batalhão de Rondas de Ações Intensivas e Ostensivas 85 9976-90224",
+                fire: "Bombeiros (Fortaleza): R. Padre Pedro de Alencar, 1091 - Messejana, Fortaleza - CE, 60180-410, tel: 193",
+                city_hall: "Prefeitura de Cascavel: R. Prof. Hélio Gusmão, 2205 - Centro, Cascavel - CE, 62850-000, tel (85) 3334-1475"
+            }
+        }, {
+            code: "HCT15",
+            name: "Caatinga 15",
+            city: "Jaguaruana",
+            lat: -4.819453,
+            lng: -37.885483,
+            distributor: "ENEL CE",
+            endereço: "54H8+Q8G Santa Luzia",
+            hasGTY: false,
+            security: {
+                direct: "Breno (Técnico) +5521997118128",
+                police: "Polícia Militar: Rua José Cláudio de Melo, s/n - Centro, tel (88) 3418-1370 Delegacia Policia Militar Jaguaruana 88 9922-22624",
+                fire: "Bombeiros (Aracati): R. Cel. Alexandrino, 1244 - Centro, Aracati - CE, 62800-000, tel: 193",
+                city_hall: "Prefeitura de Jaguaruana: Praça Adolfo Távora, 40 - Centro, Jaguaruana, CE, 62823-000, tel (88) 3418-1388"
+            }
+        }, {
+            code: "HCT23",
+            name: "Caatinga 23",
+            city: "Beberibe",
+            lat: -4.25466,
+            lng: -38.081623,
+            distributor: "ENEL CE",
+            endereço: "PWV9+C4R Sucatinga, Beberibe",
+            hasGTY: false,
+            security: {
+                direct: "Breno (Técnico) +5521997118128",
+                police: "Polícia Militar: R. Joaquim Facó, 370 - Beberibe, CE, 62840-000, tel (85) 3338-1190 Batalhão de Rondas de Ações Intensivas e Ostensivas 85 9976-90224",
+                fire: "Bombeiros (Fortaleza): Av. Dom Luís, 1200 - Meireles, Fortaleza - CE, 60160-230, tel: 193",
+                city_hall: "Prefeitura de Beberibe: R. Gen. Edgar Facó, 1 - Centro, Beberibe, CE, 62840-000, tel (85) 3338-1293"
+            }
+        }, {
+            code: "HCT06",
+            name: "Caatinga 06",
+            city: "Nova Russas",
+            lat: -4.700,
+            lng: -40.579,
+            distributor: "ENEL CE",
+            endereço: "8F9C+X6V Nova Russas",
+            hasGTY: false,
+            security: {
+                direct: "Leandro (líder) +5521995618768",
+                police: "Polícia Militar: R. Leonardo Araújo, 1421 - Centro, Nova Russas - CE, 62200-000, tel: (88) 3672-190",
+                fire: "Bombeiros (Crateús): R. Ubaldino Souto Maior, 1251 - São Vicente, Crateús - CE, 63700-000, tel: 193",
+                city_hall: "Prefeitura de Nova Russas: Praça Manuel premiado, 55 - Centro, Nova Russas - CE, 62200-000, tel: (88) 3672-1144"
+            }
+        }, {
+            code: "HCT07",
+            name: "Caatinga 07",
+            city: "Nova Russas",
+            lat: -4.708,
+            lng: -40.56,
+            distributor: "ENEL CE",
+            endereço: "8F2G+Q6F Nova Russas",
+            hasGTY: false,
+            security: {
+                direct: "Leandro (líder) +5521995618768",
+                police: "Polícia Militar: R. Leonardo Araújo, 1421 - Centro, Nova Russas - CE, 62200-000, tel: (88) 3672-190",
+                fire: "Bombeiros (Crateús): R. Ubaldino Souto Maior, 1251 - São Vicente, Crateús - CE, 63700-000, tel: 193",
+                city_hall: "Prefeitura de Nova Russas: Praça Manuel premiado, 55 - Centro, Nova Russas - CE, 62200-000, tel: (88) 3672-1144"
+            }
+        }, {
+            code: "HCT09",
+            name: "Caatinga 09",
+            city: "Monsenhor Tabosa",
+            lat: -4.832,
+            lng: -40.163,
+            distributor: "ENEL CE",
+            endereço: "6WG4+MC9 Monsenhor Tabosa",
+            hasGTY: false,
+            security: {
+                direct: "Leandro (líder) +5521995618768",
+                police: "Polícia Militar: R. Maj. Ventura, 100 - Centro, Monsenhor Tabosa - CE, 63780-000, tel: (88) 3696-190",
+                fire: "Bombeiros (Santa Quitéria): Av. Mal. Castelo Branco, 601 - Piracicaba, Santa Quitéria - CE, 62280-000, tel: 193",
+                city_hall: "Prefeitura de Monsenhor Tabosa: Av. Padre Feitosa, S/N - Centro, Monsenhor Tabosa - CE, 63780-000, tel: (88) 3696-1133"
+            }
+        }, {
+            code: "HCT11",
+            name: "Caatinga 11",
+            city: "Varjota",
+            lat: -4.2,
+            lng: -40.5,
+            distributor: "ENEL CE",
+            endereço: "VHF4+VMM Varjota",
+            hasGTY: false,
+            security: {
+                direct: "Leandro (líder) +5521995618768",
+                police: "Polícia Militar: R. do Açude, 451 - Centro, Varjota - CE, 62240-000, tel: (88) 3639-190",
+                fire: "Bombeiros (Santa Quitéria): Av. Mal. Castelo Branco, 601 - Piracicaba, Santa Quitéria - CE, 62280-000, tel: 193",
+                city_hall: "Prefeitura de Varjota: Rua Franklin Lavor, S/N, Centro, Varjota - CE, 62240-000, tel: (88) 3639-1133"
+            }
+        }, {
+            code: "HCT17",
+            name: "Caatinga 17",
+            city: "Santa Quitéria",
+            lat: -4.332,
+            lng: -40.158,
+            distributor: "ENEL CE",
+            endereço: "MQHP+4Q8 Santa Quitéria",
+            hasGTY: false,
+            security: {
+                direct: "Leandro (líder) +5521995618768",
+                police: "Polícia Militar: R. Adroaldo Martins, 1200 - Centro, Santa Quitéria - CE, 62280-000, tel: (88) 3628-190",
+                fire: "Bombeiros: Av. Mal. Castelo Branco, 601 - Piracicaba, Santa Quitéria - CE, 62280-000, tel: 193",
+                city_hall: "Prefeitura de Santa Quitéria: R. Cel. Francisco de Holanda, 188 - Centro, Santa Quitéria - CE, 62280-000, tel: (88) 3628-0123"
+            }
+        }, {
+            code: "HCT18",
+            name: "Caatinga 18",
+            city: "Marco",
+            lat: -3.12,
+            lng: -40.147,
+            distributor: "ENEL CE",
+            endereço: "VVFP+H42 Marco",
+            hasGTY: false,
+            security: {
+                direct: "Leandro (líder) +5521995618768",
+                police: "Polícia Militar: R. Profa. Zélia de Matos, 10 - Centro, Marco - CE, 62560-000, tel: (88) 3664-190",
+                fire: "Bombeiros (Acaraú): Av. Capitão Diogo Lopes, 1083 - Praia, Acaraú - CE, 62580-000, tel: 193",
+                city_hall: "Prefeitura de Marco: R. Edvaldo de Aguiar, 150 - Centro, Marco - CE, 62560-000, tel: (88) 3664-1133"
+            }
+        }, {
+            code: "HCT19",
+            name: "Caatinga 19",
+            city: "Marco",
+            lat: -3.12,
+            lng: -40.147,
+            distributor: "ENEL CE",
+            endereço: "VVFX+Q8G Marco",
+            hasGTY: false,
+            security: {
+                direct: "Leandro (líder) +5521995618768",
+                police: "Polícia Militar: R. Profa. Zélia de Matos, 10 - Centro, Marco - CE, 62560-000, tel: (88) 3664-190",
+                fire: "Bombeiros (Acaraú): Av. Capitão Diogo Lopes, 1083 - Praia, Acaraú - CE, 62580-000, tel: 193",
+                city_hall: "Prefeitura de Marco: R. Edvaldo de Aguiar, 150 - Centro, Marco - CE, 62560-000, tel: (88) 3664-1133"
+            }
+        }, {
+            code: "HCT22",
+            name: "Caatinga 22",
+            city: "Carnaubal",
+            lat: -4.162,
+            lng: -40.965,
+            distributor: "ENEL CE",
+            endereço: "V36F+8MM Carnaubal",
+            hasGTY: false,
+            security: {
+                direct: "Leandro (líder) +5521995618768",
+                police: "Polícia Militar: R. Francisco de Assis, S/N - Centro, Carnaubal - CE, 62375-000, tel: (88) 3647-190",
+                fire: "Bombeiros (São Benedito): Av. Tabajara, 120 - Centro, São Benedito - CE, 62370-000, tel: 193",
+                city_hall: "Prefeitura de Carnaubal: Praça 25 de Agosto, S/N - Centro, Carnaubal - CE, 62375-000, tel: (88) 3647-1133"
+            }
+        }],
+        "RN": [{
+            code: "HPP01",
+            name: "Pipa 01",
+            city: "Governador Dix-Sept Rosado",
+            lat: -5.5,
+            lng: -37.490874,
+            distributor: "COSERN",
+            endereço: "GG25+8CQ Governador Dix-Sept Rosado",
+            hasGTY: false,
+            security: {
+                direct: "Breno (Técnico) +5521997118128",
+                police: "Polícia Militar: R. Manoel Joaquim, 121 - Centro, Governador Dix-Sept Rosado - RN, 59790-000, tel: (84) 3320-0136",
+                fire: "Bombeiros (Mossoró): Rua Felipe Camarão, 149, Aeroporto, Mossoró - RN, CEP: 59607-340, tel: 193",
+                city_hall: "Prefeitura: Rua José Fernandes, 135, Centro, Governador Dix-Sept Rosado - RN, CEP: 59790-000, tel: (84) 3320-0135"
+            }
+        }, {
+            code: "HPP12",
+            name: "Pipa 12",
+            city: "Governador Dix-Sept Rosado",
+            lat: -5.499358,
+            lng: -37.492462,
+            distributor: "COSERN",
+            endereço: "FGX5+V6M Governador Dix-Sept Rosado",
+            hasGTY: false,
+            security: {
+                direct: "Breno (Técnico) +5521997118128",
+                police: "Polícia Militar: R. Manoel Joaquim, 121 - Centro, Governador Dix-Sept Rosado - RN, 59790-000, tel: (84) 3320-0136",
+                fire: "Bombeiros (Mossoró): Rua Felipe Camarão, 149, Aeroporto, Mossoró - RN, CEP: 59607-340, tel: 193",
+                city_hall: "Prefeitura: Rua José Fernandes, 135, Centro, Governador Dix-Sept Rosado - RN, CEP: 59790-000, tel: (84) 3320-0135"
+            }
+        }, {
+            code: "HPP02",
+            name: "Pipa 02",
+            city: "Governador Dix-Sept Rosado",
+            lat: -5.45,
+            lng: -37.52,
+            distributor: "COSERN",
+            endereço: "GG25+MH6 Governador Dix-Sept Rosado",
+            hasGTY: false,
+            security: {
+                direct: "Breno (Técnico) +5521997118128",
+                police: "Polícia Militar: R. Manoel Joaquim, 121 - Centro, Governador Dix-Sept Rosado - RN, 59790-000, tel: (84) 3320-0136",
+                fire: "Bombeiros (Mossoró): Rua Felipe Camarão, 149, Aeroporto, Mossoró - RN, CEP: 59607-340, tel: 193",
+                city_hall: "Prefeitura: Rua José Fernandes, 135, Centro, Governador Dix-Sept Rosado - RN, CEP: 59790-000, tel: (84) 3320-0135"
+            }
+        }, {
+            code: "HPP10",
+            name: "Pipa 10",
+            city: "Touros",
+            lat: -5.2,
+            lng: -35.46,
+            distributor: "COSERN",
+            endereço: "FGX5+V6M Governador Dix-Sept Rosado",
+            hasGTY: false,
+            security: {
+                direct: "Breno (Técnico) +5521997118128",
+                police: "Polícia Militar: R. Idalina G. de Souza, 12 - Centro, Touros - RN, 59584-000, tel: (84) 3263-2290",
+                fire: "Bombeiros (Natal): Av. Prudente de Morais, 2410 - Barro Vermelho, Natal - RN, 59022-400, tel: 193",
+                city_hall: "Prefeitura de Touros: Praça do Santíssimo Sacramento, 23 - Centro, Touros - RN, 59584-000, tel: (84) 3263-2233"
+            }
+        }, {
+            code: "HPP15",
+            name: "Pipa 15",
+            city: "Riacho da Cruz",
+            lat: -6.0,
+            lng: -37.9,
+            distributor: "COSERN",
+            endereço: "GG25+8CQ Governador Dix-Sept Rosado",
+            hasGTY: false,
+            security: {
+                direct: "Breno (Técnico) +5521997118128",
+                police: "Polícia Militar: R. Vicente de Paula, 172, Riacho da Cruz - RN, 59810-000, tel: (84) 3373-0023",
+                fire: "Bombeiros (Pau dos Ferros): BR-405, S/N - Arizona, Pau dos Ferros - RN, 59900-000, tel: 193",
+                city_hall: "Prefeitura de Riacho da Cruz: R. Vicente de Paula, 1, Riacho da Cruz - RN, 59810-000, tel: (84) 3373-0001"
+            }
+        }],
+        "PE": [{
+            code: "HMR82",
+            name: "Maracatu 082",
+            city: "Afrânio",
+            lat: -8.51,
+            lng: -41.0,
+            distributor: "Neoenergia PE",
+            endereço: "FXQH+CCX Afrânio",
+            hasGTY: false,
+            security: {
+                direct: "Breno (Técnico) +5521997118128",
+                police: "Polícia Militar: R. da Matriz, 237 - Centro, Afrânio - PE, 56360-000, tel: (87) 3868-1990",
+                fire: "Bombeiros (Petrolina): Av. da Integração, 1264 - Dom Malan, Petrolina - PE, 56310-410, tel: 193",
+                city_hall: "Prefeitura de Afrânio: R. da Matriz, 237 - Centro, Afrânio - PE, 56360-000, tel: (87) 3868-1156"
+            }
+        }, {
+            code: "HMR101",
+            name: "Maracatu 101",
+            city: "Vertentes",
+            lat: -7.9,
+            lng: -35.7,
+            distributor: "Neoenergia PE",
+            endereço: "32MH+V2J Vertentes",
+            hasGTY: false,
+            security: {
+                direct: "Breno (Técnico) +5521997118128",
+                police: "Polícia Militar: R. Manoel de Souza Ramos, 1-13 - Centro, Vertentes - PE, 55770-000, tel: (81) 3734-1990",
+                fire: "Bombeiros (Surubim): Rod. PE-090, 890 - Coqueiro, Surubim - PE, 55750-000, tel: 193",
+                city_hall: "Prefeitura de Vertentes: R. Dr. Emídio, 189 - Centro, Vertentes - PE, 55770-000, tel: (81) 3734-1156"
+            }
+        }, {
+            code: "HMR102",
+            name: "Maracatu 102",
+            city: "Vertentes",
+            lat: -7.9,
+            lng: -35.7,
+            distributor: "Neoenergia PE",
+            endereço: "32MH+V2J Vertentes",
+            hasGTY: false,
+            security: {
+                direct: "Breno (Técnico) +5521997118128",
+                police: "Polícia Militar: R. Manoel de Souza Ramos, 1-13 - Centro, Vertentes - PE, 55770-000, tel: (81) 3734-1990",
+                fire: "Bombeiros (Surubim): Rod. PE-090, 890 - Coqueiro, Surubim - PE, 55750-000, tel: 193",
+                city_hall: "Prefeitura de Vertentes: R. Dr. Emídio, 189 - Centro, Vertentes - PE, 55770-000, tel: (81) 3734-1156"
+            }
+        }],
+        "BA": [{
+            code: "HCO00",
+            name: "Coração de Maria",
+            city: "Coração de Maria",
+            lat: -12.24,
+            lng: -38.75,
+            distributor: "Neoenergia BA",
+            endereço: "R5FR+MX9 Itacava, Coração de Maria",
+            hasGTY: false,
+            security: {
+                direct: "Breno (Técnico) +5521997118128",
+                police: "Polícia Militar: R. da Matriz, 25 - Centro, Coração de Maria - BA, 44250-000, tel: (75) 3647-1990",
+                fire: "Bombeiros (Feira de Santana): Av. Eduardo Fróes da Mota, S/N - 35º BI, Feira de Santana - BA, 44050-005, tel: 193",
+                city_hall: "Prefeitura de Coração de Maria: Praça Araújo Pinho, 26 - Centro, Coração de Maria - BA, 44250-000, tel: (75) 3647-1133"
+            }
+        }, {
+            code: "HXN14",
+            name: "Xango 14",
+            city: "Tucano",
+            lat: -10.96,
+            lng: -38.78,
+            distributor: "Neoenergia BA",
+            endereço: "37G8+QMF Tucano",
+            hasGTY: false,
+            security: {
+                direct: "Breno (Técnico) +5521997118128",
+                police: "Polícia Militar: Praça da Bandeira, 199 - Centro, Tucano - BA, 48790-000, tel: (75) 3272-1990",
+                fire: "Bombeiros (Euclides da Cunha): Av. Almerindo Rehem, S/N - Centro, Euclides da Cunha - BA, 48500-000, tel: 193",
+                city_hall: "Prefeitura de Tucano: Praça da Bandeira, 1 - Centro, Tucano - BA, 48790-000, tel: (75) 3272-1133"
+            }
+        }]
+    },
+    "Centro-Oeste": {
+        "GO": [{
+            code: "HBV01",
+            name: "Bela Vista 01",
+            city: "Bela Vista de Goiás",
+            lat: -16.986862,
+            lng: -48.902698,
+            distributor: "EQUATORIAL GO",
+            hasGTY: false,
+            security: {
+                direct: "Carlos (técnico) +5521998341076",
+                police: "Polícia Militar: R. da Matriz, 305 - Centro, Bela Vista de Goiás - GO, 75240-000, tel: (62) 3551-1190",
+                fire: "Bombeiros (Goiânia): Av. C-206, 335 - Jardim América, Goiânia - GO, 74275-010, tel: 193",
+                city_hall: "Prefeitura de Bela Vista de Goiás: Praça José Lobo, 10 - Centro, Bela Vista de Goiás - GO, 75240-000, tel: (62) 3551-7000"
+            }
+        }, {
+            code: "HPQ11",
+            name: "Pequi 11",
+            city: "Guapó",
+            lat: -16.852294,
+            lng: -49.558643,
+            distributor: "EQUATORIAL GO",
+            endereço: "4CXV+MC9 Guapó",
+            hasGTY: false,
+            security: {
+                direct: "Carlos (técnico) +5521998341076",
+                police: "Polícia Militar: R. Rodolfo Taváres, 12 - Centro, Guapó - GO, 75350-000, tel (62) 3552-1190",
+                fire: "Bombeiros (Trindade): R. da Pecuária, 90 - Santuário, Trindade - GO, 75380-000, tel (62) 3505-3369",
+                city_hall: "Prefeitura de Guapó: Praça da Matriz, 2 - Centro, Guapó - GO, 75350-000, tel (62) 3552-1122"
+            }
+        }, {
+            code: "HPQ21",
+            name: "Pequi 21",
+            city: "Cezarina",
+            lat: -17.055572,
+            lng: -49.760838,
+            distributor: "EQUATORIAL GO",
+            endereço: "W6VQ+64C Cezarina",
+            hasGTY: false,
+            security: {
+                direct: "Carlos (técnico) +5521998341076",
+                police: "Polícia Militar: R. Rui Barbosa, Cezarina - GO, 76195-000, tel (64) 3543-1190",
+                fire: "Bombeiros (Palmeiras de Goiás): Av. Oeste, S/N - Centro, Palmeiras de Goiás - GO, 76190-000, tel: 193",
+                city_hall: "Prefeitura de Cezarina: Avenida Luís Cardoso de Almeida, Quadra 10, Lotes 1-5, s/n - Centro, Cezarina - GO, 76195-000, tel (64) 3543-6012"
+            }
+        }, {
+            code: "HPQ61",
+            name: "Pequi 61",
+            city: "Rio Verde",
+            lat: -17.618267,
+            lng: -50.829675,
+            distributor: "EQUATORIAL GO",
+            hasGTY: false,
+            security: {
+                direct: "Carlos (técnico) +5521998341076",
+                police: "Polícia Militar: Av. Presidente Vargas, 3790 - Centro, Rio Verde - GO, 75901-040, tel (64) 3620-1190",
+                fire: "Bombeiros: R. 7, 1456 - Setor Central, Rio Verde - GO, 75901-150, tel (64) 3620-3193",
+                city_hall: "Prefeitura de Rio Verde: Av. Presidente Vargas, 3784 - Centro, Rio Verde - GO, 75901-040, tel (64) 3620-7000"
+            }
+        }, {
+            code: "HPQ71",
+            name: "Pequi 71",
+            city: "Ouro Verde de Goiás",
+            lat: -16.24006,
+            lng: -49.184972,
+            distributor: "EQUATORIAL GO",
+            hasGTY: false,
+            security: {
+                direct: "Carlos (técnico) +5521998341076",
+                police: "Polícia Militar: Praça da Matriz, s/n - Centro, Ouro Verde de Goiás - GO, 75480-000, tel: (62) 3342-1190",
+                fire: "Bombeiros (Anápolis): Av. Pres. Kennedy, 513 - Maracanã, Anápolis - GO, 75040-040, tel: 193",
+                city_hall: "Prefeitura de Ouro Verde de Goiás: Praça da Matriz, s/n - Centro, Ouro Verde de Goiás - GO, 75480-000, tel: (62) 3342-1122"
+            }
+        }, {
+            code: "HBV00",
+            name: "Bela Vista de Goias",
+            city: "Bela Vista de Goiás",
+            lat: -16.97,
+            lng: -48.95,
+            distributor: "EQUATORIAL GO",
+            endereço: "237X+2C5 Bela Vista de Goiás",
+            hasGTY: false,
+            security: {
+                direct: "Carlos (técnico) +5521998341076",
+                police: "Polícia Militar: R. da Matriz, 305 - Centro, Bela Vista de Goiás - GO, 75240-000, tel: (62) 3551-1190",
+                fire: "Bombeiros (Goiânia): Av. C-206, 335 - Jardim América, Goiânia - GO, 74275-010, tel: 193",
+                city_hall: "Prefeitura de Bela Vista de Goiás: Praça José Lobo, 10 - Centro, Bela Vista de Goiás - GO, 75240-000, tel: (62) 3551-7000"
+            }
+        }, {
+            code: "HPQ22",
+            name: "PEQUI 22",
+            city: "Cezarina",
+            lat: -17.07,
+            lng: -49.76,
+            distributor: "EQUATORIAL GO",
+            endereço: "W6VQ+64C Cezarina",
+            hasGTY: false,
+            security: {
+                direct: "Carlos (técnico) +5521998341076",
+                police: "Polícia Militar: R. Rui Barbosa, Cezarina - GO, 76195-000, tel (64) 3543-1190",
+                fire: "Bombeiros (Palmeiras de Goiás): Av. Oeste, S/N - Centro, Palmeiras de Goiás - GO, 76190-000, tel: 193",
+                city_hall: "Prefeitura de Cezarina: Avenida Luís Cardoso de Almeida, Quadra 10, Lotes 1-5, s/n - Centro, Cezarina - GO, 76195-000, tel (64) 3543-6012"
+            }
+        }, {
+            code: "HPQ23",
+            name: "PEQUI 23",
+            city: "Cezarina",
+            lat: -17.07,
+            lng: -49.76,
+            distributor: "EQUATORIAL GO",
+            endereço: "W6VQ+64C Cezarina",
+            hasGTY: false,
+            security: {
+                direct: "Carlos (técnico) +5521998341076",
+                police: "Polícia Militar: R. Rui Barbosa, Cezarina - GO, 76195-000, tel (64) 3543-1190",
+                fire: "Bombeiros (Palmeiras de Goiás): Av. Oeste, S/N - Centro, Palmeiras de Goiás - GO, 76190-000, tel: 193",
+                city_hall: "Prefeitura de Cezarina: Avenida Luís Cardoso de Almeida, Quadra 10, Lotes 1-5, s/n - Centro, Cezarina - GO, 76195-000, tel (64) 3543-6012"
+            }
+        }, {
+            code: "HPQ24",
+            name: "PEQUI 24",
+            city: "Cezarina",
+            lat: -17.07,
+            lng: -49.76,
+            distributor: "EQUATORIAL GO",
+            endereço: "W6VQ+64C Cezarina",
+            hasGTY: false,
+            security: {
+                direct: "Carlos (técnico) +5521998341076",
+                police: "Polícia Militar: R. Rui Barbosa, Cezarina - GO, 76195-000, tel (64) 3543-1190",
+                fire: "Bombeiros (Palmeiras de Goiás): Av. Oeste, S/N - Centro, Palmeiras de Goiás - GO, 76190-000, tel: 193",
+                city_hall: "Prefeitura de Cezarina: Avenida Luís Cardoso de Almeida, Quadra 10, Lotes 1-5, s/n - Centro, Cezarina - GO, 76195-000, tel (64) 3543-6012"
+            }
+        }, {
+            code: "HPQ25",
+            name: "PEQUI 25",
+            city: "Cezarina",
+            lat: -17.07,
+            lng: -49.76,
+            distributor: "EQUATORIAL GO",
+            endereço: "W6VQ+64C Cezarina",
+            hasGTY: false,
+            security: {
+                direct: "Carlos (técnico) +5521998341076",
+                police: "Polícia Militar: R. Rui Barbosa, Cezarina - GO, 76195-000, tel (64) 3543-1190",
+                fire: "Bombeiros (Palmeiras de Goiás): Av. Oeste, S/N - Centro, Palmeiras de Goiás - GO, 76190-000, tel: 193",
+                city_hall: "Prefeitura de Cezarina: Avenida Luís Cardoso de Almeida, Quadra 10, Lotes 1-5, s/n - Centro, Cezarina - GO, 76195-000, tel (64) 3543-6012"
+            }
+        }, {
+            code: "HPQ60",
+            name: "PEQUI 6",
+            city: "Santo Antônio da Barra",
+            lat: -17.79,
+            lng: -50.92,
+            distributor: "EQUATORIAL GO",
+            endereço: "95MC+84J Santa Cruz das Lajes, Santo Antônio da Barra",
+            hasGTY: false,
+            security: {
+                direct: "Carlos (técnico) +5521998341076",
+                police: "Polícia Militar (Acreúna): R. Dom Emanuel, 21 - Centro, Acreúna - GO, 75960-000, tel: (64) 3645-1190",
+                fire: "Bombeiros (Rio Verde): R. 7, 1456 - Setor Central, Rio Verde - GO, 75901-150, tel (64) 3620-3193",
+                city_hall: "Prefeitura de Santo Antônio da Barra: Av. Brasil, 432 - Centro, Santo Antônio da Barra - GO, 75995-000, tel: (64) 3646-1133"
+            }
+        }, {
+            code: "HPQ70",
+            name: "PEQUI 7",
+            city: "Ouro Verde de Goiás",
+            lat: -16.22,
+            lng: -49.19,
+            distributor: "EQUATORIAL GO",
+            endereço: "QR67+8CQ Ouro Verde de Goiás",
+            hasGTY: false,
+            security: {
+                direct: "Carlos (técnico) +5521998341076",
+                police: "Polícia Militar: Praça da Matriz, s/n - Centro, Ouro Verde de Goiás - GO, 75480-000, tel: (62) 3342-1190",
+                fire: "Bombeiros (Anápolis): Av. Pres. Kennedy, 513 - Maracanã, Anápolis - GO, 75040-040, tel: 193",
+                city_hall: "Prefeitura de Ouro Verde de Goiás: Praça da Matriz, s/n - Centro, Ouro Verde de Goiás - GO, 75480-000, tel: (62) 3342-1122"
+            }
+        }],
+        "MS": [{
+            code: "HBB01",
+            name: "Barro Branco",
+            city: "Paranaíba",
+            lat: -19.676647,
+            lng: -51.292041,
+            distributor: "EMS",
+            endereço: "8PG5+6QG Paranaíba",
+            hasGTY: false,
+            security: {
+                direct: "Renato (Líder) +5521967637498",
+                police: "Polícia Militar: Av. PSDB, 1000 - Dejair Garcia de Freitas, Paranaíba - MS, 79500-000, tel: (67) 3669-3400",
+                fire: "Bombeiros: R. Benedito da Palma Oliveira, 285 - Vila Santo Antonio, Paranaíba - MS, 79500-000, tel: (67) 3503-1071",
+                city_hall: "Prefeitura de Paranaíba: Av. Durval Rodrigues Lopes, 400 - Ipê Branco, Paranaíba - MS, 79500-000, tel: (67) 3669-0000"
+            }
+        }, {
+            code: "HBC01",
+            name: "Bacuri",
+            city: "Paranaíba",
+            lat: -19.474007,
+            lng: -51.089015,
+            distributor: "EMS",
+            endereço: "GWH5+68G Cachoeira - Raimundo, Paranaíba",
+            hasGTY: false,
+            security: {
+                direct: "Renato (Líder) +5521967637498",
+                police: "Polícia Militar: Av. PSDB, 1000 - Dejair Garcia de Freitas, Paranaíba - MS, 79500-000, tel: (67) 3669-3400",
+                fire: "Bombeiros: R. Benedito da Palma Oliveira, 285 - Vila Santo Antonio, Paranaíba - MS, 79500-000, tel: (67) 3503-1071",
+                city_hall: "Prefeitura de Paranaíba: Av. Durval Rodrigues Lopes, 400 - Ipê Branco, Paranaíba - MS, 79500-000, tel: (67) 3669-0000"
+            }
+        }, {
+            code: "HCS01",
+            name: "Cassilândia 01",
+            city: "Cassilândia",
+            lat: -19.126598,
+            lng: -51.70552,
+            distributor: "EMS",
+            endereço: "V7GW+8HJ Cassilândia",
+            hasGTY: false,
+            security: {
+                direct: "Renato (Líder) +5521967637498",
+                police: "Polícia Militar: R. Vicente de Andrade Vasconcelos, 51, Cassilândia - MS, 79540-000, tel (67) 3596-1366",
+                fire: "Bombeiros: R. Joaquim Balduíno, 735 - Centro, Cassilândia - MS, 79540-000, tel: (67) 3596-1094",
+                city_hall: "Prefeitura de Cassilândia: Rua Pedro Pereira de Almeida, 391 - Centro, Cassilândia - MS, 79540-000, tel (67) 3596-1133"
+            }
+        }, {
+            code: "HPA01",
+            name: "Paraíso das Águas",
+            city: "Paraíso das Águas",
+            lat: -19.019,
+            lng: -52.977,
+            distributor: "EMS",
+            hasGTY: false,
+            security: {
+                direct: "Renato (Líder) +5521967637498",
+                police: "Polícia Militar: R. Epaminondas Nogueira de Camargo, Paraíso das Águas - MS, 79556-000, tel (67) 3248-1141",
+                fire: "Bombeiros (Costa Rica): Rua Ambrosina Paes Coelho, 717, Centro, Costa Rica - MS, tel (67) 3247-1133",
+                city_hall: "Prefeitura de Paraíso das Águas: Av. Manoel Vicente de Souza, 356, Paraíso das Águas - MS, 79556-000, tel (67) 3248-1140"
+            }
+        }, {
+            code: "HPN01",
+            name: "Paranaiba 01",
+            city: "Paranaíba",
+            lat: -19.71705,
+            lng: -51.174996,
+            distributor: "EMS",
+            endereço: "7RJG+CHR Paranaíba",
+            hasGTY: false,
+            security: {
+                direct: "Renato (Líder) +5521967637498",
+                police: "Polícia Militar: Av. PSDB, 1000 - Dejair Garcia de Freitas, Paranaíba - MS, 79500-000, tel: (67) 3669-3400",
+                fire: "Bombeiros: R. Benedito da Palma Oliveira, 285 - Vila Santo Antonio, Paranaíba - MS, 79500-000, tel: (67) 3503-1071",
+                city_hall: "Prefeitura de Paranaíba: Av. Durval Rodrigues Lopes, 400 - Ipê Branco, Paranaíba - MS, 79500-000, tel: (67) 3669-0000"
+            }
+        }]
+    },
+    "Sudeste": {
+        "SP": [{
+            code: "HEC01",
+            name: "Euclides da Cunha 01",
+            city: "Euclides da Cunha Paulista",
+            lat: -22.518875,
+            lng: -52.651715,
+            distributor: "ELEKTRO SP",
+            endereço: "F8HW+VQP Euclides da Cunha Paulista",
+            hasGTY: false,
+            security: {
+                direct: "Roberto (líder) +5521995619660",
+                police: "Polícia Militar: R. Pres. Kennedy, 510 - Centro, Euclides da Cunha Paulista - SP, 19270-000, tel (18) 3281-1190",
+                fire: "Bombeiros (Presidente Venceslau): Av. da Saudade, 700 - Vila Popular, Pres. Venceslau - SP, 19400-000, tel: 193",
+                city_hall: "Prefeitura de Euclides da Cunha Paulista: R. Pres. Kennedy, 510 - Centro, Euclides da Cunha Paulista - SP, 19270-000, tel (18) 3281-1122"
+            }
+        }, {
+            code: "HPH03",
+            name: "Pinheiros 03",
+            city: "Presidente Alves",
+            lat: -22.129531,
+            lng: -49.47589,
+            distributor: "CPFL PTA",
+            endereço: "VGCG+Q4C Presidente Alves",
+            hasGTY: false,
+            security: {
+                direct: "Renato (líder) +5521967637498",
+                police: "Polícia Militar: R. Vinte e Oito de Março, 301 - Centro, Presidente Alves - SP, 16670-000, tel (14) 3557-1190",
+                fire: "Bombeiros (Bauru): R. Maj. Fonseca, 1-13 - Jardim Estoril, Bauru - SP, 17014-410, tel: 193",
+                city_hall: "Prefeitura de Presidente Alves: R. Pereira de Rezende, 120 - Centro, Presidente Alves - SP, 16670-000, tel (14) 3557-1122"
+            }
+        }, {
+            code: "HPH07",
+            name: "Pinheiros 07",
+            city: "Guararapes",
+            lat: -21.233206,
+            lng: -50.666397,
+            distributor: "CPFL PTA",
+            endereço: "Q88H+8MM Guararapes",
+            hasGTY: false,
+            security: {
+                direct: "Renato (líder) +5521967637498",
+                police: "Polícia Militar: R. Prudente de Morais, 831 - Centro, Guararapes - SP, 16700-000, tel (18) 3606-1190",
+                fire: "Bombeiros (Araçatuba): Av. Prestes Maia, 1451 - Jardim Ipanema, Araçatuba - SP, 16052-045, tel: 193",
+                city_hall: "Prefeitura de Guararapes: R. Prudente de Morais, 955 - Centro, Guararapes - SP, 16700-000, tel (18) 3606-1122"
+            }
+        }, {
+            code: "HPH81",
+            name: "Pinheiros 81",
+            city: "Barretos",
+            lat: -20.541574,
+            lng: -48.535947,
+            distributor: "CPFL PTA",
+            endereço: "FF75+C6V Barretos",
+            hasGTY: true,
+            security: {
+                direct: "Renato Ramos +5521967637498",
+                police: "COPOM SP (11)3577-3190 / Polícia Militar: Av. 23, 850 - Centro, Barretos - SP, 14780-290, tel (17) 3323-1190",
+                fire: "Bombeiros: Av. 25, 45 - Centro, Barretos - SP, 14780-320, tel (17) 3323-3193",
+                city_hall: "Prefeitura de Barretos: R. 30, 564 - Centro, Barretos - SP, 14780-110, tel (17) 3322-1122"
+            }
+        }, {
+            code: "HPV01",
+            name: "Presidente Venceslau 01",
+            city: "Presidente Venceslau",
+            lat: -21.912207,
+            lng: -51.850668,
+            distributor: "ESS",
+            endereço: "35P2+M88 Presidente Venceslau",
+            hasGTY: false,
+            security: {
+                direct: "Renato (líder) +5521967637498",
+                police: "Polícia Militar: R. Euclides da Cunha, 15 - Centro, Presidente Venceslau - SP, 19400-000, tel (18) 3271-1190",
+                fire: "Bombeiros: Av. da Saudade, 700 - Vila Popular, Pres. Venceslau - SP, 19400-000, tel: 193",
+                city_hall: "Prefeitura de Presidente Venceslau: R. Campos Sales, 335 - Centro, Presidente Venceslau - SP, 19400-000, tel (18) 3271-1122"
+            }
+        }, {
+            code: "HSM03",
+            name: "Serra do Mar 03",
+            city: "Lorena",
+            lat: -22.711662,
+            lng: -45.156632,
+            distributor: "EDP SP",
+            endereço: "7RPV+4V9 Lorena",
+            hasGTY: true,
+            security: {
+                direct: "Junior (líder) 21997307617",
+                police: "Polícia Militar: R. Capitão José Lopes, 789 - Centro, Lorena - SP, 12600-000, tel (12) 3152-1190  COPOM (11) 3577-3190",
+                fire: "Bombeiros: R. Dom Bosco, 359 - Centro, Lorena - SP, 12600-100, tel: 193",
+                city_hall: "Prefeitura de Lorena: Av. Cap. Messias Ribeiro, 211 - Olaria, Lorena - SP, 12607-020, tel (12) 3159-3300"
+            }
+        }, {
+            code: "HSM04",
+            name: "Serra do Mar 04",
+            city: "Cruzeiro",
+            lat: -22.59713,
+            lng: -44.991062,
+            distributor: "EDP SP",
+            endereço: "C226+Q4C Cruzeiro",
+            hasGTY: true,
+            security: {
+                direct: "Washington Bruno +5512981840086",
+                police: "COPOM tel (011) 3577-3190, Polícia Militar: R. Eng. Antônio Penido, 539 - Centro, Cruzeiro - SP, 12701-440, tel (12) 3144-1190",
+                fire: "Bombeiros: R. Sete, 301 - Vila Ana Rosa, Cruzeiro - SP, 12705-430, tel: 193",
+                city_hall: "Prefeitura de Cruzeiro: R. Dr. Celestino, 1604 - Centro, Cruzeiro - SP, 12701-450, tel (12) 3144-1122"
+            }
+        }, {
+            code: "HSM06",
+            name: "Serra do Mar 06",
+            city: "Caçapava",
+            lat: -23.021502,
+            lng: -45.719168,
+            distributor: "EDP SP",
+            endereço: "X7HJ+8CQ Caçapava",
+            hasGTY: true,
+            security: {
+                direct: "Tiago Augusto +5511938003045",
+                police: "COPOM tel (011) 3577-3190, Polícia Militar: Av. da Saudade, 120 - Jardim Campo Grande, Caçapava - SP, 12282-410, tel (12) 3653-1190",
+                fire: "Bombeiros: Av. Brasil, 960 - Vera Cruz, Caçapava - SP, 12287-020, tel: 193",
+                city_hall: "Prefeitura de Caçapava: R. Cap. Tomé, 55 - Centro, Caçapava - SP, 12280-080, tel (12) 3654-6600"
+            }
+        }, {
+            code: "HSM07",
+            name: "Serra do Mar 07",
+            city: "Lorena",
+            lat: -22.747953,
+            lng: -45.082838,
+            distributor: "EDP SP",
+            endereço: "7W29+CVX Lorena",
+            hasGTY: true,
+            security: {
+                direct: "Washington Bruno +5512981840086",
+                police: "Polícia Militar: R. Capitão José Lopes, 789 - Centro, Lorena - SP, 12600-000, tel (12) 3152-1190",
+                fire: "Bombeiros: R. Dom Bosco, 359 - Centro, Lorena - SP, 12600-100, tel: 193",
+                city_hall: "Prefeitura de Lorena: Av. Cap. Messias Ribeiro, 211 - Olaria, Lorena - SP, 12607-020, tel (12) 3159-3300"
+            }
+        }, {
+            code: "HSM12",
+            name: "Serra do Mar 12",
+            city: "Canas",
+            endereço: "7W5Q+VQP Canas",
+            lat: -22.737508,
+            lng: -45.057994,
+            distributor: "EDP SP",
+            hasGTY: false,
+            security: {
+                direct: "Washington Bruno +5512981840086",
+                police: "Polícia Militar (Lorena): R. Capitão José Lopes, 789 - Centro, Lorena - SP, 12600-000, tel (12) 3152-1190",
+                fire: "Bombeiros (Lorena): R. Dom Bosco, 359 - Centro, Lorena - SP, 12600-100, tel: 193",
+                city_hall: "Prefeitura de Canas: R. Dr. João de Oliveira e Silva, 203 - Centro, Canas - SP, 12615-000, tel (12) 3154-1122"
+            }
+        }, {
+            code: "HSM13",
+            name: "Serra do Mar 13",
+            city: "Caçapava",
+            endereço: "X76G+426 São João da Boa Vista, Caçapava",
+            lat: -23.038546,
+            lng: -45.723438,
+            distributor: "EDP SP",
+            hasGTY: true,
+            security: {
+                direct: "Junior (líder) +5521997307617",
+                police: "Polícia Militar: Av. da Saudade, 120 - Jardim Campo Grande, Caçapava - SP, 12282-410, tel (12) 3653-1190 COPOM (011) 3577-3190",
+                fire: "Bombeiros: Av. Brasil, 960 - Vera Cruz, Caçapava - SP, 12287-020, tel: 193",
+                city_hall: "Prefeitura de Caçapava: R. Cap. Tomé, 55 - Centro, Caçapava - SP, 12280-080, tel (12) 3654-6600"
+            }
+        }, {
+            code: "HTQ01",
+            name: "Taquarituba 01",
+            city: "Taquarituba",
+            lat: -23.502261,
+            lng: -49.277648,
+            distributor: "CPFL JAGUARI /STA CRUZ",
+            endereço: "FPWF+MM7 Taquarituba",
+            hasGTY: false,
+            security: {
+                direct: "Junior (líder) +5521997307617",
+                police: "Polícia Militar: R. São Benedito, 500 - Centro, Taquarituba - SP, 18740-000, tel (14) 3762-1190",
+                fire: "Bombeiros (Avaré): Av. Pref. Misael Euphrásio Leal, 1441 - Jardim Paineiras, Avaré - SP, 18705-590, tel: 193",
+                city_hall: "Prefeitura de Taquarituba: Praça Dr. Waldemar d'Ambrosio, 1 - Centro, Taquarituba - SP, 18740-000, tel (14) 3762-1122"
+            }
+        }, {
+            code: "H12C01",
+            name: "12 Canas",
+            city: "Canas",
+            lat: -22.7067,
+            lng: -45.0581,
+            distributor: "EDP SP",
+            hasGTY: true,
+            security: {
+                direct: "PM Lorena +551231521190",
+                police: "Polícia Militar (Lorena): R. Capitão José Lopes, 789 - Centro, Lorena - SP, 12600-000, tel (12) 3152-1190",
+                fire: "Bombeiros (Lorena): R. Dom Bosco, 359 - Centro, Lorena - SP, 12600-100, tel: 193",
+                city_hall: "Prefeitura de Canas: R. Dr. João de Oliveira e Silva, 203 - Centro, Canas - SP, 12615-000, tel (12) 3154-1122"
+            }
+        }, {
+            code: "HPH61",
+            name: "Pinheiros 061",
+            city: "Santo Antônio do Aracanguá",
+            lat: -21.04,
+            lng: -50.64,
+            distributor: "CPFL Paulista",
+            endereço: "2GFG+2Q4 Santo Antônio do Aracanguá",
+            hasGTY: false,
+            security: {
+                direct: "Renato (líder) +5521967637498",
+                police: "Polícia Militar: R. Manoel Francisco de Souza, 120 - Centro, Santo Antônio do Aracanguá - SP, 16130-000, tel: (18) 3639-1190",
+                fire: "Bombeiros (Araçatuba): Av. Prestes Maia, 1451 - Jardim Ipanema, Araçatuba - SP, 16052-045, tel: 193",
+                city_hall: "Prefeitura de Santo Antônio do Aracanguá: Praça da Bandeira, 1 - Centro, Santo Antônio do Aracanguá - SP, 16130-000, tel: (18) 3639-1122"
+            }
+        }, {
+            code: "HPH62",
+            name: "Pinheiros 062",
+            city: "Santo Antônio do Aracanguá",
+            lat: -21.04,
+            lng: -50.64,
+            distributor: "CPFL Paulista",
+            endereço: "2GFG+2Q4 Santo Antônio do Aracanguá",
+            hasGTY: false,
+            security: {
+                direct: "Renato (líder) +5521967637498",
+                police: "Polícia Militar: R. Manoel Francisco de Souza, 120 - Centro, Santo Antônio do Aracanguá - SP, 16130-000, tel: (18) 3639-1190",
+                fire: "Bombeiros (Araçatuba): Av. Prestes Maia, 1451 - Jardim Ipanema, Araçatuba - SP, 16052-045, tel: 193",
+                city_hall: "Prefeitura de Santo Antônio do Aracanguá: Praça da Bandeira, 1 - Centro, Santo Antônio do Aracanguá - SP, 16130-000, tel: (18) 3639-1122"
+            }
+        }, {
+            code: "HPH63",
+            name: "Pinheiros 063",
+            city: "Santo Antônio do Aracanguá",
+            lat: -21.04,
+            lng: -50.64,
+            distributor: "CPFL Paulista",
+            endereço: "2GFG+2Q4 Santo Antônio do Aracanguá",
+            hasGTY: false,
+            security: {
+                direct: "Renato (líder) +5521967637498",
+                police: "Polícia Militar: R. Manoel Francisco de Souza, 120 - Centro, Santo Antônio do Aracanguá - SP, 16130-000, tel: (18) 3639-1190",
+                fire: "Bombeiros (Araçatuba): Av. Prestes Maia, 1451 - Jardim Ipanema, Araçatuba - SP, 16052-045, tel: 193",
+                city_hall: "Prefeitura de Santo Antônio do Aracanguá: Praça da Bandeira, 1 - Centro, Santo Antônio do Aracanguá - SP, 16130-000, tel: (18) 3639-1122"
+            }
+        }, {
+            code: "HPH22",
+            name: "Pinheiros 22",
+            city: "Santo Antônio do Aracanguá",
+            lat: -21.04,
+            lng: -50.64,
+            distributor: "CPFL Paulista",
+            endereço: "3GH3+446 Santo Antônio do Aracanguá",
+            hasGTY: false,
+            security: {
+                direct: "Renato (líder) +5521967637498",
+                police: "Polícia Militar: R. Manoel Francisco de Souza, 120 - Centro, Santo Antônio do Aracanguá - SP, 16130-000, tel: (18) 3639-1190",
+                fire: "Bombeiros (Araçatuba): Av. Prestes Maia, 1451 - Jardim Ipanema, Araçatuba - SP, 16052-045, tel: 193",
+                city_hall: "Prefeitura de Santo Antônio do Aracanguá: Praça da Bandeira, 1 - Centro, Santo Antônio do Aracanguá - SP, 16130-000, tel: (18) 3639-1122"
+            }
+        }, {
+            code: "HSM26",
+            name: "Serra do Mar 26",
+            city: "Lorena",
+            lat: -22.73,
+            lng: -45.12,
+            distributor: "EDP SP",
+            endereço: "6WX9+VCQ Lorena",
+            hasGTY: false,
+            security: {
+                direct: "Junior (líder) +5521997307617",
+                police: "Polícia Militar: R. Capitão José Lopes, 789 - Centro, Lorena - SP, 12600-000, tel (12) 3152-1190",
+                fire: "Bombeiros: R. Dom Bosco, 359 - Centro, Lorena - SP, 12600-100, tel: 193",
+                city_hall: "Prefeitura de Lorena: Av. Cap. Messias Ribeiro, 211 - Olaria, Lorena - SP, 12607-020, tel (12) 3159-3300"
+            }
+        }, {
+            code: "HTT01",
+            name: "Tietê 01",
+            city: "Cotia",
+            lat: -23.1,
+            lng: -47.71,
+            distributor: "CPFL Piratininga",
+            endereço: "8W9V+XHR Cotia - Caucaia do Alto, Cotia",
+            hasGTY: false,
+            security: {
+                direct: "Junior (líder) +5521997307617",
+                police: "Polícia Militar: Av. Prof. Joaquim Barreto, 94 - Jardim Nomura, Cotia - SP, 06717-150, tel: (11) 4703-4411",
+                fire: "Bombeiros: R. da Prata, 125 - Jardim Nomura, Cotia - SP, 06717-220, tel: 193",
+                city_hall: "Prefeitura de Cotia: Av. Prof. Manoel José Pedroso, 1347 - Jardim Nomura, Cotia - SP, 06717-100, tel: (11) 4616-0466"
+            }
+        }, {
+            code: "HTT02",
+            name: "Tietê 02",
+            city: "Cotia",
+            lat: -23.1,
+            lng: -47.71,
+            distributor: "CPFL Piratininga",
+            endereço: "932J+MV9 Cotia",
+            hasGTY: false,
+            security: {
+                direct: "Junior (líder) +5521997307617",
+                police: "Polícia Militar: Av. Prof. Joaquim Barreto, 94 - Jardim Nomura, Cotia - SP, 06717-150, tel: (11) 4703-4411",
+                fire: "Bombeiros: R. da Prata, 125 - Jardim Nomura, Cotia - SP, 06717-220, tel: 193",
+                city_hall: "Prefeitura de Cotia: Av. Prof. Manoel José Pedroso, 1347 - Jardim Nomura, Cotia - SP, 06717-100, tel: (11) 4616-0466"
+            }
+        }, {
+            code: "HTT03",
+            name: "Tietê 03",
+            city: "Itapevi",
+            lat: -23.54,
+            lng: -46.93,
+            distributor: "Enel SP",
+            endereço: "C2H3+H42 Itapevi",
+            hasGTY: false,
+            security: {
+                direct: "Junior (líder) +5521997307617",
+                police: "Polícia Militar: R. Prof. Dimarães Antonio Sandei, 219 - Vila Nova Itapevi, Itapevi - SP, 06694-000, tel: (11) 4141-2999",
+                fire: "Bombeiros: R. Prof. Irineu Chaluppe, 241 - Centro, Itapevi - SP, 06653-020, tel: 193",
+                city_hall: "Prefeitura de Itapevi: Av. Pres. Vargas, 405 - Vila Nova Itapevi, Itapevi - SP, 06694-000, tel: (11) 4143-7500"
+            }
+        }, {
+            code: "HTT18",
+            name: "Tietê 18",
+            city: "Embu-Guaçu",
+            lat: -23.82,
+            lng: -46.81,
+            distributor: "Enel SP",
+            endereço: "446W+MC9 Embu Guaçu, Embu-Guaçu",
+            hasGTY: false,
+            security: {
+                direct: "Junior (líder) +5521997307617",
+                police: "Polícia Militar: R. Boa Vista, 255 - Centro, Embu-Guaçu - SP, 06900-000, tel: (11) 4661-1190",
+                fire: "Bombeiros (Itapecerica da Serra): R. da Saudade, 100 - Parque Paraiso, Itapecerica da Serra - SP, 06850-230, tel: 193",
+                city_hall: "Prefeitura de Embu-Guaçu: R. Cel. Luiz Tenório de Brito, 458 - Centro, Embu-Guaçu - SP, 06900-000, tel: (11) 4662-7300"
+            }
+        }]
+    },
+    "Sul": {
+        "PR": [{
+            code: "HAP01",
+            name: "Alto Paraná 01",
+            city: "Alto Paraná",
+            lat: -23.150601,
+            lng: -52.342593,
+            distributor: "COPEL",
+            endereço: "RMX5+Q4C Alto Paraná",
+            hasGTY: false,
+            security: {
+                direct: "Roberto (líder) +5521995619660",
+                police: "Polícia Militar: R. dos Cafezais, 1630 - Centro, Alto Paraná - PR, 87750-000, tel: (44) 3447-1190",
+                fire: "Bombeiros (Paranavaí): R. do Café, 1600 - Centro, Paranavaí - PR, 87702-150, tel: 193",
+                city_hall: "Prefeitura de Alto Paraná: R. Reginaldo de Sanches, 1370 - Centro, Alto Paraná - PR, 87750-000, tel: (44) 3447-1122"
+            }
+        }, {
+            code: "HCG01",
+            name: "Cidade Gaucha 01",
+            city: "Cidade Gaúcha",
+            lat: -23.41369,
+            lng: -52.950997,
+            distributor: "COPEL",
+            endereço: "H2PX+MM7 Cidade Gaúcha",
+            hasGTY: false,
+            security: {
+                direct: "Roberto (líder) +5521995619660",
+                police: "COPOM PR (41) 3320-2830 Polícia Militar: R. Santos Dumont, 1205 - Centro, Cidade Gaúcha - PR, 87820-000, tel (44) 3675-1190",
+                fire: "Bombeiros (Cianorte): Av. das Fábricas, 77 - Parque Industrial, Cianorte - PR, 87200-000, tel: 193",
+                city_hall: "Prefeitura de Cidade Gaúcha: Av. Olinto Cardoso, 897 - Centro, Cidade Gaúcha - PR, 87820-000, tel (44) 3675-1122"
+            }
+        }, {
+            code: "HIG01",
+            name: "Iguaraçu",
+            city: "Iguaraçu",
+            lat: -23.208201,
+            lng: -51.778229,
+            distributor: "COPEL",
+            endereço: "Q6RC+V4J Iguaraçu",
+            hasGTY: true,
+            security: {
+                direct: "Tiago Augusto +5511938003045",
+                police: "Polícia Militar (Astorga): R. das Camélias, 21 - Jardim das Flores, Astorga - PR, 86730-000, tel: (44) 3234-1190",
+                fire: "Bombeiros (Maringá): Av. Guaíra, 305 - Zona 07, Maringá - PR, 87020-050, tel: 193",
+                city_hall: "Prefeitura de Iguaraçu: Av. das Rosas, 750 - Centro, Iguaraçu - PR, 86750-000, tel: (44) 3248-1122"
+            }
+        }, {
+            code: "HLO01",
+            name: "Loanda 01",
+            city: "Loanda",
+            lat: -22.937484,
+            lng: -53.109985,
+            distributor: "COPEL",
+            endereço: "3V6R+V8P Loanda",
+            hasGTY: false,
+            security: {
+                direct: "Roberto (líder) +5521995619660",
+                police: "Polícia Militar: R. Quintino Bocaiúva, 1150 - Centro, Loanda - PR, 87900-000, tel (44) 3425-1190",
+                fire: "Bombeiros (Paranavaí): R. do Café, 1600 - Centro, Paranavaí - PR, 87702-150, tel: 193",
+                city_hall: "Prefeitura de Loanda: Av. Brasil, 1150 - Centro, Loanda - PR, 87900-000, tel (44) 3425-1122"
+            }
+        }, {
+            code: "HLO02",
+            name: "Loanda 02",
+            city: "Loanda",
+            lat: -22.937484,
+            lng: -53.109985,
+            distributor: "COPEL",
+            endereço: "3V7Q+M46 Loanda",
+            hasGTY: false,
+            security: {
+                direct: "Roberto (líder) +5521995619660",
+                police: "Polícia Militar: R. Quintino Bocaiúva, 1150 - Centro, Loanda - PR, 87900-000, tel (44) 3425-1190",
+                fire: "Bombeiros (Paranavaí): R. do Café, 1600 - Centro, Paranavaí - PR, 87702-150, tel: 193",
+                city_hall: "Prefeitura de Loanda: Av. Brasil, 1150 - Centro, Loanda - PR, 87900-000, tel (44) 3425-1122"
+            }
+        }, {
+            code: "HMM01",
+            name: "Munhoz de Melo",
+            city: "Munhoz de Melo",
+            lat: -23.211234,
+            lng: -51.756532,
+            distributor: "COPEL",
+            endereço: "Q6RV+Q8G Munhoz de Melo",
+            hasGTY: true,
+            security: {
+                direct: "Filipe Cândido +554499382650",
+                police: "Polícia Militar (Astorga): R. das Camélias, 21 - Jardim das Flores, Astorga - PR, 86730-000, tel: (44) 3234-1190",
+                fire: "Bombeiros (Maringá): Av. Guaíra, 305 - Zona 07, Maringá - PR, 87020-050, tel: 193",
+                city_hall: "Prefeitura de Munhoz de Melo: Praça da Matriz, 77 - Centro, Munhoz de Melo - PR, 86760-000, tel: (44) 3258-1122"
+            }
+        }, {
+            code: "HNE01",
+            name: "Nova Esperança",
+            city: "Nova Esperança",
+            lat: -23.21195,
+            lng: -52.22602,
+            distributor: "COPEL",
+            endereço: "QQQC+MV9 Nova Esperança",
+            hasGTY: true,
+            security: {
+                direct: "Felipe +554498650550",
+                police: "Polícia Militar: R. Pres. Juscelino Kubitscheck, 1020 - Centro, Nova Esperança - PR, 87600-000, tel (44) 3252-1190",
+                fire: "Bombeiros (Maringá): Av. Guaíra, 305 - Zona 07, Maringá - PR, 87020-050, tel: 193",
+                city_hall: "Prefeitura de Nova Esperança: Av. Rocha Pombo, 1210 - Centro, Nova Esperança - PR, 87600-000, tel (44) 3252-1122"
+            }
+        }, {
+            code: "HAM01",
+            name: "Amaporã",
+            city: "Amaporã",
+            lat: -23.08,
+            lng: -52.83,
+            distributor: "COPEL",
+            endereço: "PR-218 - Jardim Santos Dumont, Paranavaí",
+            hasGTY: false,
+            security: {
+                direct: "Roberto (líder) +5521995619660",
+                police: "Polícia Militar: R. Eurídes de Oliveira, 1215 - Centro, Amaporã - PR, 87830-000, tel: (44) 3435-1190",
+                fire: "Bombeiros (Paranavaí): R. do Café, 1600 - Centro, Paranavaí - PR, 87702-150, tel: 193",
+                city_hall: "Prefeitura de Amaporã: R. Eurídes de Oliveira, 1395 - Centro, Amaporã - PR, 87830-000, tel: (44) 3435-1122"
+            }
+        }, {
+            code: "HCL01",
+            name: "Colorado",
+            city: "Colorado",
+            lat: -22.83,
+            lng: -51.97,
+            distributor: "COPEL",
+            endereço: "52XR+2C5 Colorado",
+            hasGTY: false,
+            security: {
+                direct: "Roberto (líder) +5521995619660",
+                police: "Polícia Militar: R. da Bandeira, 450 - Centro, Colorado - PR, 86690-000, tel: (44) 3323-1190",
+                fire: "Bombeiros (Maringá): Av. Guaíra, 305 - Zona 07, Maringá - PR, 87020-050, tel: 193",
+                city_hall: "Prefeitura de Colorado: Praça Dom Bosco, 115 - Centro, Colorado - PR, 86690-000, tel: (44) 3323-1122"
+            }
+        }, {
+            code: "HGR01",
+            name: "Graciosa",
+            city: "Nova Aliança do Ivaí",
+            lat: -23.16,
+            lng: -52.6,
+            distributor: "COPEL",
+            endereço: "RCQ7+Q8G Nova Aliança do Ivaí",
+            hasGTY: false,
+            security: {
+                direct: "Roberto (líder) +5521995619660",
+                police: "Polícia Militar (Paranavaí): Av. Heitor de Alencar Furtado, 4200 - Jardim America, Paranavaí - PR, 87705-100, tel: (44) 3421-1700",
+                fire: "Bombeiros (Paranavaí): R. do Café, 1600 - Centro, Paranavaí - PR, 87702-150, tel: 193",
+                city_hall: "Prefeitura de Nova Aliança do Ivaí: Av. Brasil, 735 - Centro, Nova Aliança do Ivaí - PR, 87760-000, tel: (44) 3436-1122"
+            }
+        }, {
+            code: "HRL01",
+            name: "Rolandia",
+            city: "Rolândia",
+            lat: -23.31,
+            lng: -51.36,
+            distributor: "COPEL",
+            endereço: "RJ6C+88P Nossa Sra. da Aparecida, Rolândia",
+            hasGTY: false,
+            security: {
+                direct: "Roberto (líder) +5521995619660",
+                police: "Polícia Militar: Av. Expedicionários, 606 - Centro, Rolândia - PR, 86600-063, tel: (43) 3256-1190",
+                fire: "Bombeiros: Av. dos Expedicionários, 300 - Centro, Rolândia - PR, 86600-063, tel: 193",
+                city_hall: "Prefeitura de Rolândia: Av. Pres. Bernardes, 809 - Centro, Rolândia - PR, 86600-077, tel: (43) 3255-8600"
+            }
+        }],
+        "RS": [{
+            code: "HSJ01",
+            name: "São Jeronimo 01",
+            city: "São Jerônimo",
+            lat: -30.108649,
+            lng: -51.8269,
+            distributor: "CEEE",
+            endereço: "V5VC+6CH São Jerônimo",
+            hasGTY: false,
+            security: {
+                direct: "Roberto (líder) +5521995619660",
+                police: "Polícia Militar: R. Mal. Deodoro, 258 - Centro, São Jerônimo - RS, 96700-000, tel (51) 3651-1190",
+                fire: "Bombeiros: R. Rio Branco, 680 - Centro, São Jerônimo - RS, 96700-000, tel: 193",
+                city_hall: "Prefeitura de São Jerônimo: R. Rio Branco, 815 - Centro, São Jerônimo - RS, 96700-000, tel (51) 3651-1122"
+            }
+        }, {
+            code: "HPM01",
+            name: "Pampas 1",
+            city: "Tapes",
+            lat: -30.67,
+            lng: -51.39,
+            distributor: "CEEE",
+            endereço: "8H3F+CHR Tapes",
+            hasGTY: false,
+            security: {
+                direct: "Roberto (líder) +5521995619660",
+                police: "Brigada Militar: R. Assis Brasil, 321 - Centro, Tapes - RS, 96760-000, tel: (51) 3672-1190",
+                fire: "Bombeiros (Camaquã): R. Luiza Maraninchi, 680 - Centro, Camaquã - RS, 96180-000, tel: 193",
+                city_hall: "Prefeitura de Tapes: R. Cel. Pacheco, 198 - Centro, Tapes - RS, 96760-000, tel: (51) 3672-1122"
+            }
+        }]
+    }
+};
+// Dados de risco por região (baseado em pesquisa de criminalidade)
+const riskData = {
+"Norte": { percentage: 75, level: "high", description: "Alto risco devido a roubos frequentes de cabos e equipamentos" },
+"Nordeste": { percentage: 65, level: "medium", description: "Risco médio-alto com casos de vandalismo e furtos" },
+"Centro-Oeste": { percentage: 45, level: "medium", description: "Risco moderado com ocorrências esporádicas" },
+"Sudeste": { percentage: 35, level: "low", description: "Risco baixo-médio com boa cobertura de segurança" },
+"Sul": { percentage: 25, level: "low", description: "Baixo risco com infraestrutura de segurança eficiente" }
+};
+// Cores por região
+const regionColors = {
+"Norte": "#e53e3e",
+"Nordeste": "#3182ce",
+"Centro-Oeste": "#38a169",
+"Sudeste": "#d69e2e",
+"Sul": "#805ad5"
+};
+// Variáveis globais
+let map;
+let markerClusters;
+let occurrences = JSON.parse(localStorage.getItem('occurrences')) || [];
+// Função para obter região de uma UFV
+function getRegionByLocation(location) {
+for (let region in locations) {
+for (let state in locations[region]) {
+if (locations[region][state].find(loc => loc.code === location.code)) {
+return region;
+}
+}
+}
+return "Sudeste"; // fallback
+}
+// Função para verificar se é dia par ou ímpar
+function isEvenDay() {
+return new Date().getDate() % 2 === 0;
+}
+// Função para obter responsável atual
+function getCurrentGuard(schedule) {
+if (!schedule) return null;
+const now = new Date();
+const hour = now.getHours();
+const isEven = isEvenDay();
+const dayShift = isEven ? schedule.even : schedule.odd;
+if (hour >= 7 && hour < 19) {
+return { current: dayShift.day, next: dayShift.night, period: "Turno Diurno" };
+} else {
+return { current: dayShift.night, next: dayShift.day, period: "Turno Noturno" };
+}
+}
+// Inicializar mapa
+function initMap() {
+map = L.map('map', {
+zoomControl: false
+}).setView([-15.7942, -47.8822], 4);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+// Inicializar cluster de marcadores
+markerClusters = L.markerClusterGroup({
+chunkedLoading: true,
+spiderfyOnMaxZoom: true,
+showCoverageOnHover: false,
+zoomToBoundsOnClick: true,
+maxClusterRadius: 80,
+iconCreateFunction: function(cluster) {
+const count = cluster.getChildCount();
+let size = 'small';
+if (count > 10) size = 'large';
+else if (count > 5) size = 'medium';
+return L.divIcon({
+html: '<div><span>' + count + '</span></div>',
+className: 'marker-cluster marker-cluster-' + size,
+iconSize: L.point(40, 40)
+});
+}
+});
+createMarkers();
+map.addLayer(markerClusters);
+}
+// Criar marcadores
+function createMarkers() {
+Object.keys(locations).forEach(region => {
+Object.keys(locations[region]).forEach(state => {
+locations[region][state].forEach(location => {
+const color = regionColors[region];
+const marker = L.circleMarker([location.lat, location.lng], {
+radius: 14,
+fillColor: color,
+color: '#fff',
+weight: 2,
+opacity: 1,
+fillOpacity: 0.8
+});
+marker.bindTooltip(`${location.name} - ${location.city}`, {
+permanent: false,
+direction: 'top'
+});
+marker.on('click', () => showLocationModal(location));
+markerClusters.addLayer(marker);
+});
+});
+});
+}
+// Mostrar modal da localização
+function showLocationModal(location) {
+const modal = document.getElementById('ufvModal');
+const modalTitle = document.getElementById('modalTitle');
+modalTitle.textContent = `${location.name} - ${location.city}`;
+// Resetar abas
+showTab('contacts');
+// Preencher conteúdo das abas
+fillContactsTab(location);
+fillSecurityTab(location);
+fillInfoTab(location);
+modal.style.display = 'block';
+}
+// Preencher aba de contatos
+function fillContactsTab(location) {
+const contactsTab = document.getElementById('contacts-tab');
+const region = getRegionByLocation(location);
+const risk = riskData[region];
+contactsTab.innerHTML = `
+<div class="contact-section">
+<h3><i class="fas fa-shield-alt"></i> Segurança Direta</h3>
+<div class="contact-item">
+<strong>Contato:</strong>
+<a href="https://wa.me/${location.security.direct.replace(/[^0-9]/g, '')}" target="_blank" class="whatsapp-btn">
+<i class="fab fa-whatsapp"></i> ${location.security.direct}
+</a>
+</div>
+</div>
+<div class="risk-section">
+<h3><i class="fas fa-exclamation-triangle"></i> Nível de Risco - ${region}</h3>
+<div class="risk-bar-container">
+<div class="risk-bar">
+<div class="risk-bar-fill risk-${risk.level}" style="width: ${risk.percentage}%">
+<span class="risk-percentage">${risk.percentage}%</span>
+</div>
+</div>
+<p style="margin-top: 10px; font-size: 14px; color: #ccc;">${risk.description}</p>
+</div>
+</div>
+<div class="contact-section">
+<h3><i class="fas fa-phone"></i> Emergências</h3>
+<div class="contact-item">
+<strong>Polícia:</strong>
+<span style="font-size: 12px;">${location.security.police}</span>
+</div>
+<div class="contact-item">
+<strong>Bombeiros:</strong>
+<span style="font-size: 12px;">${location.security.fire}</span>
+</div>
+<div class="contact-item">
+<strong>Prefeitura:</strong>
+<span style="font-size: 12px;">${location.security.city_hall}</span>
+</div>
+</div>
+`;
+}
+// Preencher aba de segurança GTY
+function fillSecurityTab(location) {
+const securityTab = document.getElementById('security-tab');
+if (!location.hasGTY) {
+securityTab.innerHTML = `
+<div class="contact-section">
+<h3><i class="fas fa-info-circle"></i> Segurança GTY</h3>
+<p>Esta UFV não possui cobertura do grupo GTY.</p>
+</div>
+`;
+return;
+}
+let scheduleContent = '';
+if (location.schedule) {
+const guard = getCurrentGuard(location.schedule);
+scheduleContent = `
+<div class="schedule-section">
+<h3><i class="fas fa-clock"></i> Escala Atual</h3>
+<div class="current-guard">
+<strong> ${guard.period}:</strong><br>
+${guard.current}
+</div>
+<div class="next-guard">
+<strong> Próximo Turno:</strong><br>
+${guard.next}
+</div>
+<button class="schedule-toggle" onclick="toggleScheduleDetails('${location.code}')">
+Ver Escala Completa
+</button>
+<div id="schedule-${location.code}" class="schedule-details">
+<div class="schedule-day">
+<h4> Dias Pares (${isEvenDay() ? 'HOJE' : 'AMANHÃ'})</h4>
+<p> ${location.schedule.even.day}</p>
+<p> ${location.schedule.even.night}</p>
+</div>
+<div class="schedule-day">
+<h4> Dias Ímpares (${!isEvenDay() ? 'HOJE' : 'AMANHÃ'})</h4>
+<p> ${location.schedule.odd.day}</p>
+<p> ${location.schedule.odd.night}</p>
+</div>
+</div>
+</div>
+`;
+}
+securityTab.innerHTML = `
+<div class="contact-section">
+<h3><i class="fas fa-users"></i> Grupo WhatsApp GTY</h3>
+<div class="contact-item">
+<strong>Grupo:</strong>
+<a href="https://wa.me/5512974013088" target="_blank" class="whatsapp-btn">
+<i class="fab fa-whatsapp"></i> Acessar Grupo GTY
+</a>
+</div>
+<p style="font-size: 12px; color: #ccc; margin-top: 10px;">
+Esta UFV possui cobertura da empresa de vigilância GTY com grupo dedicado no WhatsApp.
+</p>
+</div>
+${scheduleContent}
+`;
+}
+// Preencher aba de informações - VERSÃO FINAL E CORRIGIDA
+function fillInfoTab(location) {
+const infoTab = document.getElementById('info-tab');
+// Este código procura por um campo chamado "endereço" (com ç) no objeto 'location'.
+// Se não encontrar, ele exibirá o texto 'Endereço não cadastrado'.
+infoTab.innerHTML = `
+<div class="contact-section">
+<h3><i class="fas fa-info-circle"></i> Informações da UFV</h3>
+<div class="contact-item">
+<strong>Código:</strong>
+<span>${location.code}</span>
+</div>
+<div class="contact-item">
+<strong>Distribuidora:</strong>
+<span>${location.distributor}</span>
+</div>
+<div class="contact-item">
+<strong>Endereço:</strong>
+<span>${location.endereço}</span>
+</div>
+<div class="contact-item">
+<strong>Coordenadas:</strong>
+<span>${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}</span>
+</div>
+</div>
+`;
+}
+// Alternar detalhes da escala
+function toggleScheduleDetails(code) {
+const details = document.getElementById(`schedule-${code}`);
+if (details.style.display === 'block') {
+details.style.display = 'none';
+} else {
+details.style.display = 'block';
+}
+}
+// Mostrar aba
+function showTab(tabName) {
+// Remover classe active de todos os botões e conteúdos
+document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+// Adicionar classe active ao botão e conteúdo selecionado
+document.querySelector(`[onclick="showTab('${tabName}')"]`).classList.add('active');
+document.getElementById(`${tabName}-tab`).classList.add('active');
+}
+// Criar sidebar
+function createSidebar() {
+const statesList = document.getElementById('statesList');
+Object.keys(locations).forEach(region => {
+Object.keys(locations[region]).forEach(state => {
+const stateDiv = document.createElement('div');
+stateDiv.className = 'state-section';
+const stateHeader = document.createElement('div');
+stateHeader.className = 'state-header';
+stateHeader.innerHTML = `
+<span>${state}</span>
+<i class="fas fa-chevron-down"></i>
+`;
+const citiesDiv = document.createElement('div');
+citiesDiv.className = 'state-cities';
+locations[region][state].forEach(location => {
+const cityLink = document.createElement('a');
+cityLink.href = '#';
+cityLink.textContent = `${location.name} - ${location.city}`;
+cityLink.onclick = (e) => {
+e.preventDefault();
+map.setView([location.lat, location.lng], 13);
+showLocationModal(location);
+};
+citiesDiv.appendChild(cityLink);
+});
+stateHeader.onclick = () => {
+citiesDiv.classList.toggle('expanded');
+const icon = stateHeader.querySelector('i');
+icon.classList.toggle('fa-chevron-down');
+icon.classList.toggle('fa-chevron-up');
+};
+stateDiv.appendChild(stateHeader);
+stateDiv.appendChild(citiesDiv);
+statesList.appendChild(stateDiv);
+});
+});
+}
+// Função para popular select de localização
+function populateLocationSelect() {
+const locationSelect = document.getElementById('location');
+locationSelect.innerHTML = '<option value="">Selecione a localização</option>';
+Object.keys(locations).forEach(region => {
+Object.keys(locations[region]).forEach(state => {
+locations[region][state].forEach(location => {
+const option = document.createElement('option');
+option.value = location.code;
+option.textContent = `${location.name} - ${location.city}`;
+locationSelect.appendChild(option);
+});
+});
+});
+}
+// Função para mostrar painel
+function showPanel(panelType) {
+document.querySelectorAll('.panel-content').forEach(panel => {
+panel.classList.remove('active');
+});
+document.getElementById(`${panelType}-panel`).classList.add('active');
+}
+// Função para registrar ocorrência
+function registerOccurrence(event) {
+event.preventDefault();
+const formData = {
+id: Date.now(),
+location: document.getElementById('location').value,
+type: document.getElementById('type').value,
+date: document.getElementById('date').value,
+time: document.getElementById('time').value,
+names: document.getElementById('names').value,
+description: document.getElementById('description').value,
+reporter: document.getElementById('reporter').value,
+timestamp: new Date().toISOString()
+};
+occurrences.push(formData);
+localStorage.setItem('occurrences', JSON.stringify(occurrences));
+alert('Ocorrência registrada com sucesso!');
+document.getElementById('occurrenceForm').reset();
+// Atualizar lista de ocorrências se estiver visível
+if (document.getElementById('consult-panel').classList.contains('active')) {
+viewOccurrences();
+}
+}
+// Função para visualizar ocorrências
+function viewOccurrences() {
+const occurrencesList = document.getElementById('occurrencesList');
+occurrencesList.innerHTML = '';
+if (occurrences.length === 0) {
+occurrencesList.innerHTML = '<p>Nenhuma ocorrência registrada.</p>';
+return;
+}
+occurrences.forEach((occurrence, index) => {
+const locationName = getLocationName(occurrence.location);
+const occurrenceDiv = document.createElement('div');
+occurrenceDiv.className = 'occurrence-item';
+occurrenceDiv.innerHTML = `
+<div class="occurrence-header">
+<span class="occurrence-type">${occurrence.type}</span>
+<span class="occurrence-date">${new Date(occurrence.date).toLocaleDateString('pt-BR')}</span>
+</div>
+<div><strong>Local:</strong> ${locationName}</div>
+<div><strong>Horário:</strong> ${occurrence.time}</div>
+<div><strong>Responsável:</strong> ${occurrence.reporter}</div>
+<div><strong>Descrição:</strong> ${occurrence.description.substring(0, 100)}${occurrence.description.length > 100 ? '...' : ''}</div>
+<div style="margin-top: 10px;">
+<button class="btn-secondary" onclick="viewOccurrenceDetails(${index})">
+<i class="fas fa-eye"></i> Ver Detalhes
+</button>
+<button class="btn-secondary" onclick="deleteOccurrence(${index})">
+<i class="fas fa-trash"></i> Excluir
+</button>
+</div>
+`;
+occurrencesList.appendChild(occurrenceDiv);
+});
+}
+// Função para obter nome da localização
+function getLocationName(code) {
+for (let region in locations) {
+for (let state in locations[region]) {
+const location = locations[region][state].find(loc => loc.code === code);
+if (location) {
+return `${location.name} - ${location.city}`;
+}
+}
+}
+return 'Localização não encontrada';
+}
+// Função para ver detalhes da ocorrência
+function viewOccurrenceDetails(index) {
+const occurrence = occurrences[index];
+const locationName = getLocationName(occurrence.location);
+alert(`
+DETALHES DA OCORRÊNCIA
+Local: ${locationName}
+Tipo: ${occurrence.type}
+Data: ${new Date(occurrence.date).toLocaleDateString('pt-BR')}
+Horário: ${occurrence.time}
+Nomes Envolvidos: ${occurrence.names || 'Não informado'}
+Responsável: ${occurrence.reporter}
+Descrição:
+${occurrence.description}
+Registrado em: ${new Date(occurrence.timestamp).toLocaleString('pt-BR')}
+`);
+}
+// Função para excluir ocorrência
+function deleteOccurrence(index) {
+if (confirm('Tem certeza que deseja excluir esta ocorrência?')) {
+occurrences.splice(index, 1);
+localStorage.setItem('occurrences', JSON.stringify(occurrences));
+viewOccurrences();
+}
+}
+// Função para exportar PDF
+function exportPDF() {
+if (occurrences.length === 0) {
+alert('Nenhuma ocorrência para exportar.');
+return;
+}
+const { jsPDF } = window.jspdf;
+const doc = new jsPDF();
+// Cabeçalho
+doc.setFontSize(16);
+doc.setFont(undefined, 'bold');
+doc.text('HELEXIA PV PLANTS - RELATÓRIO DE OCORRÊNCIAS', 20, 20);
+doc.text('MOVISAFE AMLAT', 20, 30);
+doc.setFontSize(12);
+doc.setFont(undefined, 'normal');
+doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 20, 40);
+doc.text(`Total de ocorrências: ${occurrences.length}`, 20, 50);
+let yPosition = 70;
+occurrences.forEach((occurrence, index) => {
+if (yPosition > 250) {
+doc.addPage();
+yPosition = 20;
+}
+const locationName = getLocationName(occurrence.location);
+doc.setFont(undefined, 'bold');
+doc.text(`${index + 1}. ${occurrence.type} - ${locationName}`, 20, yPosition);
+yPosition += 10;
+doc.setFont(undefined, 'normal');
+doc.text(`Data: ${new Date(occurrence.date).toLocaleDateString('pt-BR')} às ${occurrence.time}`, 25, yPosition);
+yPosition += 7;
+if (occurrence.names) {
+doc.text(`Envolvidos: ${occurrence.names}`, 25, yPosition);
+yPosition += 7;
+}
+doc.text(`Responsável: ${occurrence.reporter}`, 25, yPosition);
+yPosition += 7;
+// Quebrar descrição em linhas
+const descriptionLines = doc.splitTextToSize(`Descrição: ${occurrence.description}`, 170);
+descriptionLines.forEach(line => {
+if (yPosition > 280) {
+doc.addPage();
+yPosition = 20;
+}
+doc.text(line, 25, yPosition);
+yPosition += 7;
+});
+doc.text(`Registrado em: ${new Date(occurrence.timestamp).toLocaleString('pt-BR')}`, 25, yPosition);
+yPosition += 15;
+// Linha separadora
+doc.line(20, yPosition - 5, 190, yPosition - 5);
+yPosition += 5;
+});
+// Rodapé
+const pageCount = doc.internal.getNumberOfPages();
+for (let i = 1; i <= pageCount; i++) {
+doc.setPage(i);
+doc.setFontSize(10);
+doc.text(`Página ${i} de ${pageCount}`, 170, 290);
+doc.text('MOVISAFE AMLAT - Relatório Confidencial', 20, 290);
+}
+doc.save(`Relatorio_Ocorrencias_${new Date().toISOString().split('T')[0]}.pdf`);
+}
+// Funcionalidade de pesquisa
+function searchLocation(query) {
+fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`, {
+headers: {
+'User-Agent': 'MonitoramentoHelexia/1.0 (contato@exemplo.com)'
+}
+})
+.then(response => response.json())
+.then(data => {
+if (data && data.length > 0) {
+const lat = parseFloat(data[0].lat);
+const lon = parseFloat(data[0].lon);
+map.setView([lat, lon], 13);
+} else {
+alert('Localização não encontrada. Tente novamente.');
+}
+})
+.catch(err => {
+console.error('Erro na pesquisa:', err);
+alert('Ocorreu um erro ao buscar a localização. Tente novamente mais tarde.');
+});
+}
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+initMap();
+createSidebar();
+populateLocationSelect();
+// Definir data atual como padrão
+document.getElementById('date').valueAsDate = new Date();
+// Toggle sidebar
+document.getElementById('toggleSidebar').addEventListener('click', () => {
+document.getElementById('sidebar').classList.toggle('hidden');
+});
+// Form submission
+document.getElementById('occurrenceForm').addEventListener('submit', registerOccurrence);
+// Modal event listeners
+document.querySelector('.close').addEventListener('click', () => {
+document.getElementById('ufvModal').style.display = 'none';
+});
+window.addEventListener('click', (event) => {
+const modal = document.getElementById('ufvModal');
+if (event.target === modal) {
+modal.style.display = 'none';
+}
+});
+// Search functionality
+const searchBar = document.querySelector('.search-bar');
+searchBar.addEventListener('keypress', function (e) {
+if (e.key === 'Enter') {
+const query = searchBar.value.trim().toLowerCase();
+if (query) {
+let found = false;
+// Procurar nas localizações
+Object.keys(locations).forEach(region => {
+Object.keys(locations[region]).forEach(state => {
+locations[region][state].forEach(location => {
+if (location.name.toLowerCase().includes(query) ||
+location.city.toLowerCase().includes(query) ||
+location.code.toLowerCase().includes(query)) {
+map.setView([location.lat, location.lng], 13);
+found = true;
+return;
+}
+});
+});
+});
+if (!found) {
+searchLocation(query);
+}
+}
+}
+});
+});
+</script>
+</body>
+</html>
