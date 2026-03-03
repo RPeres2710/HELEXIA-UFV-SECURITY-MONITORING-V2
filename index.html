@@ -600,6 +600,7 @@ min-width: 120px; /* Ajuda a alinhar o conteúdo, ajuste se necessário */
 <div id="main">
 <header>
 <h1>HELEXIA UFV SECURITY MONITORING - MOVISAFE AMLAT</h1>
+<div id="realtimeClock" style="margin-top: 6px; font-size: 18px; font-weight: 600; text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);"></div>
 <input type="text" class="search-bar" placeholder="Pesquisar localização..." aria-label="Pesquisar localização">
 </header>
 <div class="map-container">
@@ -2701,12 +2702,25 @@ console.error('Erro na pesquisa:', err);
 alert('Ocorreu um erro ao buscar a localização. Tente novamente mais tarde.');
 });
 }
+
+function updateHeaderDateTime() {
+const clockElement = document.getElementById('realtimeClock');
+if (!clockElement) return;
+const now = new Date();
+clockElement.textContent = now.toLocaleString('pt-BR', {
+timeZone: 'America/Sao_Paulo',
+dateStyle: 'full',
+timeStyle: 'medium'
+});
+}
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
 initMap();
 createSidebar();
 populateLocationSelect();
 viewRanking();
+updateHeaderDateTime();
+setInterval(updateHeaderDateTime, 1000);
 // Definir data atual como padrão
 document.getElementById('date').valueAsDate = new Date();
 // Toggle sidebar
