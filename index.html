@@ -2062,7 +2062,14 @@ const apiCandidates = (() => {
 if (window.__API_BASE_URL__) {
 return [window.__API_BASE_URL__];
 }
-const candidates = [`${window.location.origin}/api`, 'http://localhost:3000/api', 'http://127.0.0.1:3000/api'];
+const hostname = window.location.hostname;
+const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+const candidates = [
+`${window.location.origin}/api`,
+`${protocol}//${hostname}:3000/api`,
+'http://localhost:3000/api',
+'http://127.0.0.1:3000/api'
+];
 return [...new Set(candidates)];
 })();
 
