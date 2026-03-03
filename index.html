@@ -567,9 +567,99 @@ margin-bottom: 8px; /* Espaçamento entre os itens */
 .whatsapp-contact-item strong {
 min-width: 120px; /* Ajuda a alinhar o conteúdo, ajuste se necessário */
 }
+.app-hidden {
+display: none;
+}
+#appRoot {
+display: flex;
+width: 100%;
+height: 100%;
+}
+.login-screen {
+position: fixed;
+inset: 0;
+display: flex;
+align-items: center;
+justify-content: center;
+padding: 20px;
+background: radial-gradient(circle at top, #1a4f1a, #051622 60%);
+z-index: 3000;
+}
+.login-card {
+width: 100%;
+max-width: 420px;
+background: rgba(0, 0, 0, 0.8);
+border: 1px solid rgba(255, 255, 255, 0.15);
+border-radius: 12px;
+padding: 24px;
+box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.login-card h2 {
+margin-bottom: 8px;
+font-size: 1.4rem;
+}
+.login-card p {
+margin-bottom: 16px;
+color: #d8d8d8;
+font-size: 0.92rem;
+}
+.login-field {
+margin-bottom: 12px;
+}
+.login-field label {
+display: block;
+margin-bottom: 6px;
+font-weight: bold;
+}
+.login-field input {
+width: 100%;
+padding: 10px 12px;
+border: none;
+border-radius: 6px;
+background: rgba(255, 255, 255, 0.94);
+color: #222;
+}
+.login-submit {
+width: 100%;
+padding: 11px 14px;
+border: none;
+border-radius: 6px;
+cursor: pointer;
+font-weight: bold;
+background: linear-gradient(45deg, #00897b, #26a69a);
+color: #fff;
+}
+.login-submit:hover {
+background: linear-gradient(45deg, #26a69a, #4db6ac);
+}
+.login-error {
+min-height: 20px;
+margin-top: 10px;
+font-size: 0.9rem;
+color: #ff8a80;
+}
 </style>
 </head>
 <body>
+<div id="loginScreen" class="login-screen">
+<div class="login-card">
+<h2>Acesso ao Sistema</h2>
+<p>Informe usuário e senha para continuar.</p>
+<form id="loginForm">
+<div class="login-field">
+<label for="loginUser">Usuário</label>
+<input type="text" id="loginUser" autocomplete="username" required>
+</div>
+<div class="login-field">
+<label for="loginPassword">Senha</label>
+<input type="password" id="loginPassword" autocomplete="current-password" required>
+</div>
+<button type="submit" class="login-submit">Entrar</button>
+<div id="loginError" class="login-error"></div>
+</form>
+</div>
+</div>
+<div id="appRoot" class="app-hidden">
 <button id="toggleSidebar" class="menu-button" aria-label="Abrir ou fechar menu">☰</button>
 <div id="sidebar" class="sidebar hidden">
 <div class="region-legend">
@@ -780,6 +870,7 @@ Telefones Úteis
 </div>
 <div id="info-tab" class="tab-content">
 <!-- Conteúdo será inserido dinamicamente -->
+</div>
 </div>
 </div>
 </div>
@@ -2713,8 +2804,36 @@ dateStyle: 'full',
 timeStyle: 'medium'
 });
 }
-// Event listeners
-document.addEventListener('DOMContentLoaded', function() {
+function normalizeLoginUser(value) {
+return (value || '').trim().replace(/\s+/g, ' ').toUpperCase();
+}
+function authenticateUser(event) {
+event.preventDefault();
+const loginUser = document.getElementById('loginUser');
+const loginPassword = document.getElementById('loginPassword');
+const loginError = document.getElementById('loginError');
+const allowedUsers = {
+'LAIS RIL': 'GABRIEL',
+'WELLINGTON FRAGA': 'FRAGA'
+};
+const username = normalizeLoginUser(loginUser.value);
+const password = (loginPassword.value || '').trim().toUpperCase();
+if (allowedUsers[username] && allowedUsers[username] === password) {
+sessionStorage.setItem('helexia_auth', 'ok');
+loginError.textContent = '';
+startApp();
+return;
+}
+loginError.textContent = 'Usuário ou senha inválidos.';
+}
+let appStarted = false;
+function startApp() {
+if (appStarted) return;
+appStarted = true;
+const appRoot = document.getElementById('appRoot');
+const loginScreen = document.getElementById('loginScreen');
+appRoot.classList.remove('app-hidden');
+loginScreen.style.display = 'none';
 initMap();
 createSidebar();
 populateLocationSelect();
@@ -2766,8 +2885,18 @@ searchLocation(query);
 }
 }
 });
+}
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+const loginForm = document.getElementById('loginForm');
+loginForm.addEventListener('submit', authenticateUser);
+if (sessionStorage.getItem('helexia_auth') === 'ok') {
+startApp();
+}
 });
 </script>
 </body>
 </html>
+
+
 
