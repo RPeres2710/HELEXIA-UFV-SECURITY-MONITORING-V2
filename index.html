@@ -2077,13 +2077,17 @@ async function apiFetch(path, options = {}) {
 let lastError = null;
 for (const baseUrl of apiCandidates) {
 try {
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 4000);
 const response = await fetch(`${baseUrl}${path}`, {
 headers: {
 'Content-Type': 'application/json',
 ...(options.headers || {})
 },
+signal: controller.signal,
 ...options
 });
+clearTimeout(timeoutId);
 if (!response.ok) {
 let message = `Erro ${response.status}`;
 try {
@@ -2104,6 +2108,10 @@ return null;
 }
 return response.json();
 } catch (err) {
+if (err.name === 'AbortError') {
+lastError = new Error(`Timeout ao conectar em ${baseUrl}`);
+continue;
+}
 lastError = err;
 }
 }
