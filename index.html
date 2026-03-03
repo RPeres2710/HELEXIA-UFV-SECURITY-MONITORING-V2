@@ -786,6 +786,7 @@ Telefones Úteis
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 
 // Dados das localizações organizados por região
@@ -2058,6 +2059,10 @@ const regionColors = {
 let map;
 let markerClusters;
 let occurrences = [];
+const SUPABASE_URL = window.__SUPABASE_URL__ || 'https://bedghuwxszyaojmbdthb.supabase.co';
+const SUPABASE_ANON_KEY = window.__SUPABASE_ANON_KEY__ || 'sb_publishable_KUlcW9bVYJ2iZJIg_U24mw_OhH2WYmJ';
+const shouldUseSupabaseDirect = window.location.hostname.endsWith('github.io') || !!window.__USE_SUPABASE_DIRECT__;
+const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 const apiCandidates = (() => {
 if (window.__API_BASE_URL__) {
 return [window.__API_BASE_URL__];
@@ -2074,6 +2079,58 @@ return [...new Set(candidates)];
 })();
 
 async function apiFetch(path, options = {}) {
+if (shouldUseSupabaseDirect && supabaseClient) {
+const method = (options.method || 'GET').toUpperCase();
+
+if (path === '/occurrences' && method === 'GET') {
+const { data, error } = await supabaseClient
+.from('occurrences')
+.select('*')
+.order('created_at', { ascending: false });
+if (error) throw new Error(error.message);
+return data || [];
+}
+
+if (path === '/occurrences' && method === 'POST') {
+const payload = JSON.parse(options.body || '{}');
+const { data, error } = await supabaseClient
+.from('occurrences')
+.insert({
+location: payload.location,
+type: payload.type,
+date: payload.date,
+time: payload.time,
+names: payload.names || null,
+description: payload.description,
+reporter: payload.reporter
+})
+.select('*')
+.single();
+if (error) throw new Error(error.message);
+return data;
+}
+
+if (path.startsWith('/occurrences/') && method === 'DELETE') {
+const id = Number(path.split('/').pop());
+const { error } = await supabaseClient.from('occurrences').delete().eq('id', id);
+if (error) throw new Error(error.message);
+return { deleted: id };
+}
+
+if (path === '/ranking/usinas' && method === 'GET') {
+const { data, error } = await supabaseClient.from('occurrences').select('location');
+if (error) throw new Error(error.message);
+const counts = new Map();
+for (const row of data || []) {
+const key = row.location || 'N/A';
+counts.set(key, (counts.get(key) || 0) + 1);
+}
+return Array.from(counts.entries())
+.map(([location, total]) => ({ location, total }))
+.sort((a, b) => b.total - a.total || a.location.localeCompare(b.location));
+}
+}
+
 let lastError = null;
 for (const baseUrl of apiCandidates) {
 try {
