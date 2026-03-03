@@ -638,6 +638,10 @@ Passagem de Plantão
 Telefones Úteis
 </button>
 </div>
+<div style="margin: 12px 0 18px 0; padding: 12px; background: rgba(255, 255, 255, 0.08); border-radius: 8px;">
+<h4 style="margin-bottom: 8px;"><i class="fas fa-trophy"></i> Ranking de Ocorrências por Usina</h4>
+<div id="rankingList"></div>
+</div>
 <!-- Painel de Registro -->
 <div id="register-panel" class="panel-content">
 <h3><i class="fas fa-exclamation-triangle"></i> Registro de Ocorrência</h3>
@@ -2053,7 +2057,55 @@ const regionColors = {
 // Variáveis globais
 let map;
 let markerClusters;
-let occurrences = JSON.parse(localStorage.getItem('occurrences')) || [];
+let occurrences = [];
+const apiCandidates = (() => {
+if (window.__API_BASE_URL__) {
+return [window.__API_BASE_URL__];
+}
+const candidates = [`${window.location.origin}/api`, 'http://localhost:3000/api', 'http://127.0.0.1:3000/api'];
+return [...new Set(candidates)];
+})();
+
+async function apiFetch(path, options = {}) {
+let lastError = null;
+for (const baseUrl of apiCandidates) {
+try {
+const response = await fetch(`${baseUrl}${path}`, {
+headers: {
+'Content-Type': 'application/json',
+...(options.headers || {})
+},
+...options
+});
+if (!response.ok) {
+let message = `Erro ${response.status}`;
+try {
+const body = await response.json();
+message = body.error || message;
+} catch (_err) {
+// Ignora parse inválido de resposta
+}
+// 404/405 geralmente indicam endpoint errado no host atual; tenta próximo candidato.
+if (response.status === 404 || response.status === 405) {
+lastError = new Error(message);
+continue;
+}
+throw new Error(message);
+}
+if (response.status === 204) {
+return null;
+}
+return response.json();
+} catch (err) {
+lastError = err;
+}
+}
+throw lastError || new Error('Falha ao conectar com a API.');
+}
+
+async function loadOccurrences() {
+occurrences = await apiFetch('/occurrences');
+}
 // Função para obter região de uma UFV
 function getRegionByLocation(location) {
 for (let region in locations) {
@@ -2356,36 +2408,50 @@ document.querySelectorAll('.panel-content').forEach(panel => {
 panel.classList.remove('active');
 });
 document.getElementById(`${panelType}-panel`).classList.add('active');
+if (panelType === 'consult') {
+viewOccurrences();
+}
 }
 // Função para registrar ocorrência
-function registerOccurrence(event) {
+async function registerOccurrence(event) {
 event.preventDefault();
 const formData = {
-id: Date.now(),
 location: document.getElementById('location').value,
 type: document.getElementById('type').value,
 date: document.getElementById('date').value,
 time: document.getElementById('time').value,
 names: document.getElementById('names').value,
 description: document.getElementById('description').value,
-reporter: document.getElementById('reporter').value,
-timestamp: new Date().toISOString()
+reporter: document.getElementById('reporter').value
 };
-occurrences.push(formData);
-localStorage.setItem('occurrences', JSON.stringify(occurrences));
+try {
+await apiFetch('/occurrences', {
+method: 'POST',
+body: JSON.stringify(formData)
+});
 alert('Ocorrência registrada com sucesso!');
 document.getElementById('occurrenceForm').reset();
-// Atualizar lista de ocorrências se estiver visível
 if (document.getElementById('consult-panel').classList.contains('active')) {
-viewOccurrences();
+await viewOccurrences();
+}
+} catch (err) {
+console.error('Erro ao registrar ocorrência:', err);
+alert(`Falha ao registrar ocorrência: ${err.message}`);
 }
 }
 // Função para visualizar ocorrências
-function viewOccurrences() {
+async function viewOccurrences() {
 const occurrencesList = document.getElementById('occurrencesList');
 occurrencesList.innerHTML = '';
+try {
+await loadOccurrences();
+} catch (err) {
+occurrencesList.innerHTML = `<p>Erro ao carregar ocorrências: ${err.message}</p>`;
+return;
+}
 if (occurrences.length === 0) {
 occurrencesList.innerHTML = '<p>Nenhuma ocorrência registrada.</p>';
+await viewRanking();
 return;
 }
 occurrences.forEach((occurrence, index) => {
@@ -2412,6 +2478,7 @@ occurrenceDiv.innerHTML = `
 `;
 occurrencesList.appendChild(occurrenceDiv);
 });
+await viewRanking();
 }
 // Função para obter nome da localização
 function getLocationName(code) {
@@ -2425,10 +2492,30 @@ return `${location.name} - ${location.city}`;
 }
 return 'Localização não encontrada';
 }
+async function viewRanking() {
+const rankingList = document.getElementById('rankingList');
+if (!rankingList) {
+return;
+}
+rankingList.innerHTML = '<p>Carregando ranking...</p>';
+try {
+const ranking = await apiFetch('/ranking/usinas');
+if (!ranking.length) {
+rankingList.innerHTML = '<p>Sem ocorrências para exibir ranking.</p>';
+return;
+}
+rankingList.innerHTML = ranking
+.map((item, idx) => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.1);"><span>${idx + 1}. ${getLocationName(item.location)}</span><strong>${item.total}</strong></div>`)
+.join('');
+} catch (err) {
+rankingList.innerHTML = `<p>Erro ao carregar ranking: ${err.message}</p>`;
+}
+}
 // Função para ver detalhes da ocorrência
 function viewOccurrenceDetails(index) {
 const occurrence = occurrences[index];
 const locationName = getLocationName(occurrence.location);
+const createdAt = occurrence.created_at || occurrence.timestamp;
 alert(`
 DETALHES DA OCORRÊNCIA
 Local: ${locationName}
@@ -2439,15 +2526,23 @@ Nomes Envolvidos: ${occurrence.names || 'Não informado'}
 Responsável: ${occurrence.reporter}
 Descrição:
 ${occurrence.description}
-Registrado em: ${new Date(occurrence.timestamp).toLocaleString('pt-BR')}
+Registrado em: ${new Date(createdAt).toLocaleString('pt-BR')}
 `);
 }
 // Função para excluir ocorrência
-function deleteOccurrence(index) {
+async function deleteOccurrence(index) {
+const occurrence = occurrences[index];
+if (!occurrence) {
+return;
+}
 if (confirm('Tem certeza que deseja excluir esta ocorrência?')) {
-occurrences.splice(index, 1);
-localStorage.setItem('occurrences', JSON.stringify(occurrences));
-viewOccurrences();
+try {
+await apiFetch(`/occurrences/${occurrence.id}`, { method: 'DELETE' });
+await viewOccurrences();
+} catch (err) {
+console.error('Erro ao excluir ocorrência:', err);
+alert(`Falha ao excluir ocorrência: ${err.message}`);
+}
 }
 }
 // Função para exportar PDF
@@ -2496,7 +2591,7 @@ yPosition = 20;
 doc.text(line, 25, yPosition);
 yPosition += 7;
 });
-doc.text(`Registrado em: ${new Date(occurrence.timestamp).toLocaleString('pt-BR')}`, 25, yPosition);
+doc.text(`Registrado em: ${new Date((occurrence.created_at || occurrence.timestamp)).toLocaleString('pt-BR')}`, 25, yPosition);
 yPosition += 15;
 // Linha separadora
 doc.line(20, yPosition - 5, 190, yPosition - 5);
@@ -2539,6 +2634,7 @@ document.addEventListener('DOMContentLoaded', function() {
 initMap();
 createSidebar();
 populateLocationSelect();
+viewRanking();
 // Definir data atual como padrão
 document.getElementById('date').valueAsDate = new Date();
 // Toggle sidebar
@@ -2588,3 +2684,4 @@ searchLocation(query);
 </script>
 </body>
 </html>
+
